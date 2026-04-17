@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import qwenpaw.providers.openai_provider as openai_provider_module
 from qwenpaw.providers.openai_provider import OpenAIProvider
+from qwenpaw.providers.provider import ModelInfo
 
 
 def _make_provider(is_custom: bool = False) -> OpenAIProvider:
@@ -146,6 +147,91 @@ async def test_check_model_connection_api_error_returns_false(
 
     assert ok is False
     assert msg == "API error when connecting to model 'gpt-4o-mini'"
+
+
+async def test_check_model_connection_supports_stream_override(
+    monkeypatch,
+) -> None:
+    provider = _make_provider()
+    provider.generate_kwargs = {"stream": False}
+    captured: list[dict] = []
+
+    class FakeCompletions:
+        async def create(self, **kwargs):
+            captured.append(kwargs)
+            return SimpleNamespace(choices=[SimpleNamespace(message={})])
+
+    fake_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=FakeCompletions()),
+    )
+    monkeypatch.setattr(provider, "_client", lambda timeout=5: fake_client)
+
+    ok, msg = await provider.check_model_connection("gpt-4o-mini", timeout=4)
+
+    assert ok is True
+    assert msg == ""
+    assert captured[0]["stream"] is False
+
+
+def test_get_chat_model_instance_supports_provider_level_stream_override(
+    monkeypatch,
+) -> None:
+    provider = _make_provider()
+    provider.generate_kwargs = {
+        "stream": False,
+        "temperature": 0.2,
+    }
+    captured: dict[str, object] = {}
+
+    class FakeOpenAIChatModelCompat:
+        def __init__(self, **kwargs) -> None:
+            captured.update(kwargs)
+
+    monkeypatch.setattr(
+        "qwenpaw.providers.openai_chat_model_compat.OpenAIChatModelCompat",
+        FakeOpenAIChatModelCompat,
+    )
+
+    provider.get_chat_model_instance("gpt-4o-mini")
+
+    assert captured["model_name"] == "gpt-4o-mini"
+    assert captured["stream"] is False
+    assert captured["generate_kwargs"] == {"temperature": 0.2}
+
+
+def test_get_chat_model_instance_supports_model_level_stream_override(
+    monkeypatch,
+) -> None:
+    provider = _make_provider()
+    provider.generate_kwargs = {
+        "stream": True,
+        "temperature": 0.1,
+    }
+    provider.extra_models = [
+        ModelInfo(
+            id="gpt-4o-mini",
+            name="GPT-4o Mini",
+            generate_kwargs={
+                "stream": False,
+                "temperature": 0.6,
+            },
+        ),
+    ]
+    captured: dict[str, object] = {}
+
+    class FakeOpenAIChatModelCompat:
+        def __init__(self, **kwargs) -> None:
+            captured.update(kwargs)
+
+    monkeypatch.setattr(
+        "qwenpaw.providers.openai_chat_model_compat.OpenAIChatModelCompat",
+        FakeOpenAIChatModelCompat,
+    )
+
+    provider.get_chat_model_instance("gpt-4o-mini")
+
+    assert captured["stream"] is False
+    assert captured["generate_kwargs"] == {"temperature": 0.6}
 
 
 async def test_update_config_updates_non_none_values_and_get_info() -> None:

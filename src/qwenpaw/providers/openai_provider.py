@@ -39,6 +39,33 @@ else:
 class OpenAIProvider(Provider):
     """Provider implementation for OpenAI API and compatible endpoints."""
 
+    def _resolve_stream_config(
+        self,
+        model_id: str,
+    ) -> tuple[bool, dict[str, Any]]:
+        """Resolve runtime stream mode from effective generate kwargs.
+
+        ``stream`` is treated as a reserved compatibility flag for
+        OpenAI-compatible providers and is removed from the kwargs passed to
+        the underlying model generate call.
+        """
+        generate_kwargs = self.get_effective_generate_kwargs(model_id)
+        raw_stream = generate_kwargs.pop("stream", None)
+
+        if raw_stream is None:
+            return True, generate_kwargs
+        if isinstance(raw_stream, bool):
+            return raw_stream, generate_kwargs
+
+        logger.warning(
+            "Ignoring non-bool OpenAI-compatible stream override for "
+            "provider '%s' model '%s': %r",
+            self.id,
+            model_id,
+            raw_stream,
+        )
+        return True, generate_kwargs
+
     def _client(self, timeout: float = 5) -> AsyncOpenAI:
         return AsyncOpenAI(
             base_url=self.base_url,
@@ -108,6 +135,16 @@ class OpenAIProvider(Provider):
 
         try:
             client = self._client(timeout=timeout)
+            stream_enabled, _ = self._resolve_stream_config(model_id)
+            logger.debug(
+                "OpenAI-compatible model connectivity check: provider=%s "
+                "base_url=%s model=%s stream=%s timeout=%s",
+                self.id,
+                self.base_url,
+                model_id,
+                stream_enabled,
+                timeout,
+            )
             res = await client.chat.completions.create(
                 model=model_id,
                 messages=[
@@ -123,11 +160,13 @@ class OpenAIProvider(Provider):
                 ],
                 timeout=timeout,
                 max_tokens=1,
-                stream=True,
+                stream=stream_enabled,
             )
-            # consume the stream to ensure the model is actually responsive
-            async for _ in res:
-                break
+            if stream_enabled:
+                # Consume the stream to ensure the model is actually
+                # responsive.
+                async for _ in res:
+                    break
             return True, ""
         except APIError:
             return False, f"API error when connecting to model '{model_id}'"
@@ -141,6 +180,18 @@ class OpenAIProvider(Provider):
         from .openai_chat_model_compat import OpenAIChatModelCompat
 
         client_kwargs = {"base_url": self.base_url}
+        stream_enabled, generate_kwargs = self._resolve_stream_config(
+            model_id,
+        )
+        logger.debug(
+            "Create OpenAI-compatible chat model: provider=%s base_url=%s "
+            "model=%s stream=%s generate_kwargs_keys=%s",
+            self.id,
+            self.base_url,
+            model_id,
+            stream_enabled,
+            sorted(generate_kwargs.keys()),
+        )
 
         if self.base_url == DASHSCOPE_BASE_URL:
             client_kwargs["default_headers"] = {
@@ -169,11 +220,11 @@ class OpenAIProvider(Provider):
 
         return OpenAIChatModelCompat(
             model_name=model_id,
-            stream=True,
+            stream=stream_enabled,
             api_key=self.api_key,
             stream_tool_parsing=False,
             client_kwargs=client_kwargs,
-            generate_kwargs=self.get_effective_generate_kwargs(model_id),
+            generate_kwargs=generate_kwargs,
         )
 
     async def probe_model_multimodal(

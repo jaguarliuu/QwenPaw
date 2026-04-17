@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime
 from types import SimpleNamespace
 from typing import Any, AsyncGenerator, Type
@@ -16,6 +17,51 @@ from qwenpaw.local_models.tag_parser import (
     parse_tool_calls_from_text,
     text_contains_tool_call_tag,
 )
+
+logger = logging.getLogger(__name__)
+
+
+def _preview_value(value: Any, limit: int = 240) -> str:
+    """Return a bounded preview string for debug logs."""
+    try:
+        text = repr(value)
+    except Exception:  # pragma: no cover - defensive logging helper
+        text = f"<unreprable {type(value).__name__}>"
+    if len(text) > limit:
+        return text[: limit - 3] + "..."
+    return text
+
+
+def _summarize_stream_item(item: Any) -> str:
+    """Summarize a raw OpenAI-compatible stream item for diagnostics."""
+    chunk = getattr(item, "chunk", item)
+    choices = getattr(chunk, "choices", None) or []
+    summary: dict[str, Any] = {
+        "item_type": type(item).__name__,
+        "chunk_type": type(chunk).__name__,
+        "choices": len(choices),
+    }
+    if choices:
+        choice = choices[0]
+        delta = getattr(choice, "delta", None)
+        summary["finish_reason"] = getattr(choice, "finish_reason", None)
+        summary["has_delta"] = delta is not None
+        if delta is not None:
+            content = getattr(delta, "content", None)
+            if isinstance(content, str):
+                summary["content_preview"] = content[:120]
+            elif content is not None:
+                summary["content_type"] = type(content).__name__
+            reasoning = getattr(delta, "reasoning_content", None)
+            if isinstance(reasoning, str) and reasoning:
+                summary["reasoning_preview"] = reasoning[:120]
+            tool_calls = getattr(delta, "tool_calls", None) or []
+            if tool_calls:
+                summary["tool_calls"] = len(tool_calls)
+                summary["tool_call_ids"] = [
+                    getattr(tc, "id", None) for tc in tool_calls[:3]
+                ]
+    return _preview_value(summary, limit=400)
 
 
 def _clone_with_overrides(obj: Any, **overrides: Any) -> Any:
@@ -140,12 +186,28 @@ class _SanitizedStream:
     captures ``extra_content`` from tool-call chunks (used by Gemini
     thinking models to carry ``thought_signature``)."""
 
-    def __init__(self, stream: Any):
+    def __init__(self, stream: Any, *, model_name: str | None = None):
         self._stream = stream
         self._ctx_stream: Any | None = None
         self.extra_contents: dict[str, Any] = {}
+        self._model_name = model_name or ""
+        self._item_index = 0
 
     async def __aenter__(self) -> "_SanitizedStream":
+        if not hasattr(self._stream, "__aenter__"):
+            logger.warning(
+                "OpenAI-compatible stream protocol mismatch: model=%s "
+                "stream_type=%s preview=%s",
+                self._model_name or "<unknown>",
+                type(self._stream).__name__,
+                _preview_value(self._stream),
+            )
+        elif logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                "OpenAI-compatible stream enter: model=%s stream_type=%s",
+                self._model_name or "<unknown>",
+                type(self._stream).__name__,
+            )
         self._ctx_stream = await self._stream.__aenter__()
         return self
 
@@ -164,6 +226,14 @@ class _SanitizedStream:
         if self._ctx_stream is None:
             raise StopAsyncIteration
         item = await self._ctx_stream.__anext__()
+        self._item_index += 1
+        if logger.isEnabledFor(logging.DEBUG) and self._item_index <= 5:
+            logger.debug(
+                "OpenAI-compatible raw stream item #%s model=%s %s",
+                self._item_index,
+                self._model_name or "<unknown>",
+                _summarize_stream_item(item),
+            )
         self._capture_extra_content(item)
         return _sanitize_stream_item(item)
 
@@ -199,19 +269,45 @@ class OpenAIChatModelCompat(OpenAIChatModel):
         response: Any,
         structured_model: Type[BaseModel] | None = None,
     ) -> AsyncGenerator[ChatResponse, None]:
-        sanitized_response = _SanitizedStream(response)
+        model_name = getattr(self, "model_name", None)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                "OpenAI-compatible parse start: model=%s response_type=%s "
+                "structured_model=%s",
+                model_name or "<unknown>",
+                type(response).__name__,
+                getattr(structured_model, "__name__", None),
+            )
+
+        sanitized_response = _SanitizedStream(
+            response,
+            model_name=model_name,
+        )
 
         # Stable tag-extracted tool-call blocks across streaming chunks.
         # Keyed by positional strings so IDs stay consistent as chunks
         # accumulate.  Two sources: "thinking" blocks and plain "text" blocks.
         _think_tool_calls: dict[str, dict] = {}
         _text_tool_calls: dict[str, dict] = {}
+        parsed_index = 0
 
         async for parsed in super()._parse_openai_stream_response(
             start_datetime=start_datetime,
             response=sanitized_response,
             structured_model=structured_model,
         ):
+            parsed_index += 1
+            if logger.isEnabledFor(logging.DEBUG) and parsed_index <= 5:
+                logger.debug(
+                    "OpenAI-compatible parsed response #%s model=%s "
+                    "blocks=%s",
+                    parsed_index,
+                    model_name or "<unknown>",
+                    [
+                        block.get("type")
+                        for block in getattr(parsed, "content", [])[:10]
+                    ],
+                )
             # Attach extra_content (Gemini thought_signature) to tool_use
             # blocks.
             if sanitized_response.extra_contents:
