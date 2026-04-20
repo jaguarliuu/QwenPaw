@@ -42,6 +42,7 @@ import { usePlugins } from "../plugins/PluginContext";
 import styles from "./index.module.less";
 import { useTheme } from "../contexts/ThemeContext";
 import { KEY_TO_PATH, DEFAULT_OPEN_KEYS } from "./constants";
+import { getNavigationFeatures } from "./navigationFeatures";
 
 // ── Layout ────────────────────────────────────────────────────────────────
 
@@ -61,6 +62,7 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
   const { message } = useAppMessage();
   const { isDark } = useTheme();
   const { pluginRoutes } = usePlugins();
+  const { channelsEnabled } = getNavigationFeatures();
   const [authEnabled, setAuthEnabled] = useState(false);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [accountLoading, setAccountLoading] = useState(false);
@@ -140,12 +142,16 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
       path: "/chat",
       label: t("nav.chat"),
     },
-    {
-      key: "channels",
-      icon: <SparkWifiLine size={18} />,
-      path: "/channels",
-      label: t("nav.channels"),
-    },
+    ...(channelsEnabled
+      ? [
+          {
+            key: "channels",
+            icon: <SparkWifiLine size={18} />,
+            path: "/channels",
+            label: t("nav.channels"),
+          },
+        ]
+      : []),
     {
       key: "sessions",
       icon: <SparkUserGroupLine size={18} />,
@@ -263,11 +269,15 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
       key: "control-group",
       label: collapsed ? null : t("nav.control"),
       children: [
-        {
-          key: "channels",
-          label: collapsed ? null : t("nav.channels"),
-          icon: <SparkWifiLine size={16} />,
-        },
+        ...(channelsEnabled
+          ? [
+              {
+                key: "channels",
+                label: collapsed ? null : t("nav.channels"),
+                icon: <SparkWifiLine size={16} />,
+              },
+            ]
+          : []),
         {
           key: "sessions",
           label: collapsed ? null : t("nav.sessions"),

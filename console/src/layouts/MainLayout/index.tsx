@@ -9,6 +9,7 @@ import { ChunkErrorBoundary } from "../../components/ChunkErrorBoundary";
 import { lazyWithRetry } from "../../utils/lazyWithRetry";
 import { usePlugins } from "../../plugins/PluginContext";
 import styles from "../index.module.less";
+import { getNavigationFeatures } from "../navigationFeatures";
 
 // Chat is eagerly loaded (default landing page)
 import Chat from "../../pages/Chat";
@@ -80,6 +81,7 @@ export default function MainLayout() {
   const location = useLocation();
   const currentPath = location.pathname;
   const { pluginRoutes } = usePlugins();
+  const { channelsEnabled } = getNavigationFeatures();
 
   // Resolve selected key: check static routes first, then plugin routes
   let selectedKey = pathToKey[currentPath] || "";
@@ -112,7 +114,16 @@ export default function MainLayout() {
                 <Routes>
                   <Route path="/" element={<Navigate to="/chat" replace />} />
                   <Route path="/chat/*" element={<Chat />} />
-                  <Route path="/channels" element={<ChannelsPage />} />
+                  <Route
+                    path="/channels"
+                    element={
+                      channelsEnabled ? (
+                        <ChannelsPage />
+                      ) : (
+                        <Navigate to="/chat" replace />
+                      )
+                    }
+                  />
                   <Route path="/sessions" element={<SessionsPage />} />
                   <Route path="/cron-jobs" element={<CronJobsPage />} />
                   <Route path="/heartbeat" element={<HeartbeatPage />} />

@@ -341,34 +341,15 @@ def get_system_default_browser() -> Tuple[Optional[str], Optional[str]]:
 
 
 def get_available_channels() -> Tuple[str, ...]:
-    """Return channel keys enabled for this run (built-in + entry point
-    qwenpaw.channels), filtered by QWENPAW_ENABLED_CHANNELS or
-    QWENPAW_DISABLED_CHANNELS when set.
+    """Return the channels enabled for the internal desktop build.
 
-    * QWENPAW_ENABLED_CHANNELS — whitelist (only these channels are active).
-    * QWENPAW_DISABLED_CHANNELS — blacklist (all channels *except* these).
-    * If both are set, QWENPAW_ENABLED_CHANNELS takes precedence.
-    * If neither is set, all discovered channels are returned.
+    The internal build keeps the console channel active and leaves all other
+    channel implementations present in code but unavailable at runtime.
     """
     from ..app.channels.registry import get_channel_registry
 
     registry = get_channel_registry()
-    all_keys = tuple(registry.keys())
-
-    raw_enabled = EnvVarLoader.get_str("QWENPAW_ENABLED_CHANNELS", "").strip()
-    if raw_enabled:
-        enabled = {ch.strip() for ch in raw_enabled.split(",") if ch.strip()}
-        return tuple(k for k in all_keys if k in enabled) or all_keys
-
-    raw_disabled = EnvVarLoader.get_str(
-        "QWENPAW_DISABLED_CHANNELS",
-        "",
-    ).strip()
-    if raw_disabled:
-        disabled = {ch.strip() for ch in raw_disabled.split(",") if ch.strip()}
-        return tuple(k for k in all_keys if k not in disabled) or all_keys
-
-    return all_keys
+    return tuple(key for key in ("console",) if key in registry)
 
 
 def is_running_in_container() -> bool:

@@ -1188,7 +1188,27 @@
     "allDisabled": "All tools are already disabled",
     "asyncExecution": "Async Execution",
     "asyncExecutionEnabled": "Async execution enabled",
-    "asyncExecutionDisabled": "Async execution disabled"
+    "asyncExecutionDisabled": "Async execution disabled",
+    "emailConfigTitle": "SMTP Email Tool",
+    "emailConfigDescription": "Configure the built-in send_email tool for internal outbound email delivery.",
+    "emailConfigSaved": "SMTP configuration saved",
+    "emailConfigSaveFailed": "Failed to save SMTP configuration",
+    "email": {
+      "host": "SMTP Host",
+      "hostRequired": "Please enter the SMTP host",
+      "port": "SMTP Port",
+      "portRequired": "Please enter the SMTP port",
+      "username": "Username",
+      "password": "Password",
+      "fromAddress": "From Address",
+      "fromAddressRequired": "Please enter the sender address",
+      "fromName": "From Name",
+      "replyTo": "Reply-To",
+      "timeout": "Timeout (seconds)",
+      "useSsl": "Use SSL",
+      "useStarttls": "Use STARTTLS",
+      "allowUntrustedTls": "Allow Untrusted TLS"
+    }
   },
   "modelConfig": {
     "promptTitle": "LLM Model Required — Select in Chat After Configuration",
@@ -1421,7 +1441,7 @@
     }
   },
   "login": {
-    "title": "Login to QwenPaw",
+    "title": "Login to StateGrid Desktop",
     "registerTitle": "Create Account",
     "firstUserHint": "Create your admin account to get started",
     "usernamePlaceholder": "Username",

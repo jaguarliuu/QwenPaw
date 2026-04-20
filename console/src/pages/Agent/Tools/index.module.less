@@ -19,6 +19,12 @@
   overflow: auto;
 }
 
+.configSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .breadcrumbHeader {
   display: flex;
   align-items: center;
@@ -236,6 +242,55 @@
   }
 }
 
+.configCard {
+  margin: 0 16px 16px;
+
+  :global(.qwenpaw-card-body) {
+    padding: 20px !important;
+  }
+}
+
+.configHeader {
+  margin-bottom: 20px;
+}
+
+.configTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: rgba(20, 20, 19, 0.88);
+}
+
+.configDescription {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(20, 20, 19, 0.55);
+}
+
+.configForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.configGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0 16px;
+}
+
+.toggleRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0 16px;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 /* ─── Dark mode ─────────────────────────────────────────────────────────────── */
 :global(.dark-mode) {
   .pageHeader {
@@ -256,6 +311,14 @@
 
   .loading {
     color: rgba(255, 255, 255, 0.35);
+  }
+
+  .configTitle {
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  .configDescription {
+    color: rgba(255, 255, 255, 0.55);
   }
 
   /* Tool card */

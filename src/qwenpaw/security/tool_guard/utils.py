@@ -24,6 +24,7 @@ _DEFAULT_GUARDED_TOOLS = frozenset(
         "edit_file",
         "append_file",
         "send_file_to_user",
+        "send_email",
         "view_text_file",
         "write_text_file",
     },

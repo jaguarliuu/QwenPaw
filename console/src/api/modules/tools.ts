@@ -8,6 +8,20 @@ export interface ToolInfo {
   icon: string;
 }
 
+export interface EmailToolConfig {
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  from_address: string;
+  from_name: string;
+  reply_to: string;
+  use_ssl: boolean;
+  use_starttls: boolean;
+  timeout_sec: number;
+  allow_untrusted_tls: boolean;
+}
+
 export const toolsApi = {
   /**
    * List all built-in tools
@@ -33,4 +47,18 @@ export const toolsApi = {
         body: JSON.stringify({ async_execution: asyncExecution }),
       },
     ),
+
+  /**
+   * Get SMTP configuration for the send_email tool
+   */
+  getSendEmailConfig: () => request<EmailToolConfig>("/tools/send_email/config"),
+
+  /**
+   * Update SMTP configuration for the send_email tool
+   */
+  updateSendEmailConfig: (config: EmailToolConfig) =>
+    request<EmailToolConfig>("/tools/send_email/config", {
+      method: "PUT",
+      body: JSON.stringify(config),
+    }),
 };

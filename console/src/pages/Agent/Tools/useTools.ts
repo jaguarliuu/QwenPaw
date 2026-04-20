@@ -1,30 +1,59 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAppMessage } from "../../../hooks/useAppMessage";
 import api from "../../../api";
-import type { ToolInfo } from "../../../api/modules/tools";
+import type {
+  EmailToolConfig,
+  ToolInfo,
+} from "../../../api/modules/tools";
 import { useTranslation } from "react-i18next";
 import { useAgentStore } from "../../../stores/agentStore";
+
+const DEFAULT_EMAIL_TOOL_CONFIG: EmailToolConfig = {
+  host: "",
+  port: 465,
+  username: "",
+  password: "",
+  from_address: "",
+  from_name: "",
+  reply_to: "",
+  use_ssl: true,
+  use_starttls: false,
+  timeout_sec: 15,
+  allow_untrusted_tls: false,
+};
 
 export function useTools() {
   const { t } = useTranslation();
   const { selectedAgent } = useAgentStore();
   const [tools, setTools] = useState<ToolInfo[]>([]);
+  const [emailConfig, setEmailConfig] = useState<EmailToolConfig>(
+    DEFAULT_EMAIL_TOOL_CONFIG,
+  );
   const [loading, setLoading] = useState(false);
   const [batchLoading, setBatchLoading] = useState(false);
+  const [emailSaving, setEmailSaving] = useState(false);
   const { message } = useAppMessage();
 
   const loadTools = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api.listTools();
-      setTools(data);
+      const [toolData, emailData] = await Promise.all([
+        api.listTools(),
+        api.getSendEmailConfig(),
+      ]);
+      setTools(toolData);
+      setEmailConfig({
+        ...DEFAULT_EMAIL_TOOL_CONFIG,
+        ...emailData,
+      });
     } catch (error) {
       console.error("Failed to load tools:", error);
       message.error(t("tools.loadError"));
+      setEmailConfig(DEFAULT_EMAIL_TOOL_CONFIG);
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [message, t]);
 
   useEffect(() => {
     loadTools();
@@ -165,13 +194,35 @@ export function useTools() {
     }
   }, [tools, t, loadTools]);
 
+  const saveEmailConfig = useCallback(
+    async (config: EmailToolConfig) => {
+      setEmailSaving(true);
+      try {
+        const result = await api.updateSendEmailConfig(config);
+        setEmailConfig(result);
+        message.success(t("tools.emailConfigSaved"));
+        return result;
+      } catch (error) {
+        console.error("Failed to save send_email config:", error);
+        message.error(t("tools.emailConfigSaveFailed"));
+        throw error;
+      } finally {
+        setEmailSaving(false);
+      }
+    },
+    [message, t],
+  );
+
   return {
     tools,
+    emailConfig,
     loading,
     batchLoading,
+    emailSaving,
     toggleEnabled,
     toggleAsyncExecution,
     enableAll,
     disableAll,
+    saveEmailConfig,
   };
 }

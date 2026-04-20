@@ -1108,7 +1108,27 @@
     "enableAllSuccess": "すべてのツールを有効化しました",
     "disableAllSuccess": "すべてのツールを無効化しました",
     "allEnabled": "すべてのツールは既に有効です",
-    "allDisabled": "すべてのツールは既に無効です"
+    "allDisabled": "すべてのツールは既に無効です",
+    "emailConfigTitle": "SMTP メールツール",
+    "emailConfigDescription": "内部向け送信メール用に、組み込みの send_email ツールを設定します。",
+    "emailConfigSaved": "SMTP 設定を保存しました",
+    "emailConfigSaveFailed": "SMTP 設定の保存に失敗しました",
+    "email": {
+      "host": "SMTP ホスト",
+      "hostRequired": "SMTP ホストを入力してください",
+      "port": "SMTP ポート",
+      "portRequired": "SMTP ポートを入力してください",
+      "username": "ユーザー名",
+      "password": "パスワード",
+      "fromAddress": "送信元アドレス",
+      "fromAddressRequired": "送信元アドレスを入力してください",
+      "fromName": "送信者名",
+      "replyTo": "Reply-To",
+      "timeout": "タイムアウト（秒）",
+      "useSsl": "SSL を使用",
+      "useStarttls": "STARTTLS を使用",
+      "allowUntrustedTls": "信頼されていない TLS を許可"
+    }
   },
   "modelConfig": {
     "promptTitle": "LLMモデルが必要です — 設定後にChatページで選択",
@@ -1341,7 +1361,7 @@
     }
   },
   "login": {
-    "title": "QwenPaw にログイン",
+    "title": "StateGrid Desktop にログイン",
     "registerTitle": "アカウント作成",
     "firstUserHint": "管理者アカウントを作成して始めましょう",
     "usernamePlaceholder": "ユーザー名",

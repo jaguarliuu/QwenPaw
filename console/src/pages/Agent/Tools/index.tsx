@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Card, Switch, Empty, Button } from "@agentscope-ai/design";
+import { Form, Input, InputNumber, Switch as AntSwitch } from "antd";
 import {
   EyeOutlined,
   EyeInvisibleOutlined,
@@ -16,13 +17,17 @@ export default function ToolsPage() {
   const { t } = useTranslation();
   const {
     tools,
+    emailConfig,
     loading,
     batchLoading,
+    emailSaving,
     toggleEnabled,
     toggleAsyncExecution,
     enableAll,
     disableAll,
+    saveEmailConfig,
   } = useTools();
+  const [form] = Form.useForm();
   const handleToggle = (tool: ToolInfo) => {
     toggleEnabled(tool);
   };
@@ -35,6 +40,10 @@ export default function ToolsPage() {
     () => tools.some((tool) => tool.enabled),
     [tools],
   );
+
+  useEffect(() => {
+    form.setFieldsValue(emailConfig);
+  }, [emailConfig, form]);
 
   return (
     <div className={styles.toolsPage}>
@@ -60,61 +69,159 @@ export default function ToolsPage() {
         ) : tools.length === 0 ? (
           <Empty description={t("tools.emptyState")} />
         ) : (
-          <div className={styles.toolsGrid}>
-            {tools.map((tool) => (
-              <Card
-                key={tool.name}
-                className={`${styles.toolCard} ${
-                  tool.enabled ? styles.enabledCard : ""
-                }`}
-              >
-                <div className={styles.cardHeader}>
-                  <h3 className={styles.toolName}>
-                    {tool.icon} {tool.name}
-                  </h3>
-                  <div className={styles.statusContainer}>
-                    <span className={styles.statusDot} />
-                    <span className={styles.statusText}>
-                      {tool.enabled
-                        ? t("common.enabled")
-                        : t("common.disabled")}
-                    </span>
+          <div className={styles.configSection}>
+            <div className={styles.toolsGrid}>
+              {tools.map((tool) => (
+                <Card
+                  key={tool.name}
+                  className={`${styles.toolCard} ${
+                    tool.enabled ? styles.enabledCard : ""
+                  }`}
+                >
+                  <div className={styles.cardHeader}>
+                    <h3 className={styles.toolName}>
+                      {tool.icon} {tool.name}
+                    </h3>
+                    <div className={styles.statusContainer}>
+                      <span className={styles.statusDot} />
+                      <span className={styles.statusText}>
+                        {tool.enabled
+                          ? t("common.enabled")
+                          : t("common.disabled")}
+                      </span>
+                    </div>
                   </div>
-                </div>
 
-                <p className={styles.toolDescription}>{tool.description}</p>
+                  <p className={styles.toolDescription}>{tool.description}</p>
 
-                <div className={styles.cardFooter}>
-                  {tool.name === "execute_shell_command" && (
+                  <div className={styles.cardFooter}>
+                    {tool.name === "execute_shell_command" && (
+                      <Button
+                        className={styles.toggleButton}
+                        onClick={() => toggleAsyncExecution(tool)}
+                        disabled={!tool.enabled}
+                        icon={
+                          tool.async_execution ? (
+                            <ThunderboltOutlined />
+                          ) : (
+                            <ClockCircleOutlined />
+                          )
+                        }
+                      >
+                        {tool.async_execution
+                          ? t("tools.asyncExecutionEnabled")
+                          : t("tools.asyncExecutionDisabled")}
+                      </Button>
+                    )}
                     <Button
                       className={styles.toggleButton}
-                      onClick={() => toggleAsyncExecution(tool)}
-                      disabled={!tool.enabled}
+                      onClick={() => handleToggle(tool)}
                       icon={
-                        tool.async_execution ? (
-                          <ThunderboltOutlined />
-                        ) : (
-                          <ClockCircleOutlined />
-                        )
+                        tool.enabled ? <EyeInvisibleOutlined /> : <EyeOutlined />
                       }
                     >
-                      {tool.async_execution
-                        ? t("tools.asyncExecutionEnabled")
-                        : t("tools.asyncExecutionDisabled")}
+                      {tool.enabled ? t("common.disable") : t("common.enable")}
                     </Button>
-                  )}
-                  <Button
-                    className={styles.toggleButton}
-                    onClick={() => handleToggle(tool)}
-                    icon={
-                      tool.enabled ? <EyeInvisibleOutlined /> : <EyeOutlined />
-                    }
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            <Card className={styles.configCard}>
+              <div className={styles.configHeader}>
+                <div>
+                  <h3 className={styles.configTitle}>
+                    {t("tools.emailConfigTitle")}
+                  </h3>
+                  <p className={styles.configDescription}>
+                    {t("tools.emailConfigDescription")}
+                  </p>
+                </div>
+              </div>
+              <Form
+                form={form}
+                layout="vertical"
+                className={styles.configForm}
+                initialValues={emailConfig}
+                onFinish={saveEmailConfig}
+              >
+                <div className={styles.configGrid}>
+                  <Form.Item
+                    name="host"
+                    label={t("tools.email.host")}
+                    rules={[{ required: true, message: t("tools.email.hostRequired") }]}
                   >
-                    {tool.enabled ? t("common.disable") : t("common.enable")}
+                    <Input />
+                  </Form.Item>
+                  <Form.Item
+                    name="port"
+                    label={t("tools.email.port")}
+                    rules={[{ required: true, message: t("tools.email.portRequired") }]}
+                  >
+                    <InputNumber min={1} max={65535} style={{ width: "100%" }} />
+                  </Form.Item>
+                  <Form.Item name="username" label={t("tools.email.username")}>
+                    <Input />
+                  </Form.Item>
+                  <Form.Item name="password" label={t("tools.email.password")}>
+                    <Input.Password />
+                  </Form.Item>
+                  <Form.Item
+                    name="from_address"
+                    label={t("tools.email.fromAddress")}
+                    rules={[
+                      {
+                        required: true,
+                        message: t("tools.email.fromAddressRequired"),
+                      },
+                    ]}
+                  >
+                    <Input />
+                  </Form.Item>
+                  <Form.Item name="from_name" label={t("tools.email.fromName")}>
+                    <Input />
+                  </Form.Item>
+                  <Form.Item name="reply_to" label={t("tools.email.replyTo")}>
+                    <Input />
+                  </Form.Item>
+                  <Form.Item name="timeout_sec" label={t("tools.email.timeout")}>
+                    <InputNumber min={1} max={300} style={{ width: "100%" }} />
+                  </Form.Item>
+                </div>
+                <div className={styles.toggleRow}>
+                  <Form.Item
+                    name="use_ssl"
+                    label={t("tools.email.useSsl")}
+                    valuePropName="checked"
+                  >
+                    <AntSwitch />
+                  </Form.Item>
+                  <Form.Item
+                    name="use_starttls"
+                    label={t("tools.email.useStarttls")}
+                    valuePropName="checked"
+                  >
+                    <AntSwitch />
+                  </Form.Item>
+                  <Form.Item
+                    name="allow_untrusted_tls"
+                    label={t("tools.email.allowUntrustedTls")}
+                    valuePropName="checked"
+                  >
+                    <AntSwitch />
+                  </Form.Item>
+                </div>
+                <div className={styles.formActions}>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={emailSaving}
+                  >
+                    {t("common.save")}
                   </Button>
                 </div>
-              </Card>
-            ))}
+              </Form>
+            </Card>
           </div>
         )}
       </div>

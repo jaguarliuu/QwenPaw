@@ -7,6 +7,11 @@ import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import { authApi } from "../../api/modules/auth";
 import { setAuthToken } from "../../api/config";
 import { useTheme } from "../../contexts/ThemeContext";
+import {
+  APP_DISPLAY_NAME,
+  LOGIN_LOGO_DARK_PATH,
+  LOGIN_LOGO_LIGHT_PATH,
+} from "@/assets/branding";
 
 export default function LoginPage() {
   const { t } = useTranslation();
@@ -96,13 +101,9 @@ export default function LoginPage() {
       >
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <img
-            src={
-              isDark
-                ? `https://gw.alicdn.com/imgextra/i4/O1CN01L7e39724RlGeJYJ7l_!!6000000007388-55-tps-771-132.svg`
-                : "https://gw.alicdn.com/imgextra/i1/O1CN01sens5C1TuwioeGexL_!!6000000002443-55-tps-771-132.svg"
-            }
-            alt="QwenPaw"
-            style={{ height: 48, marginBottom: 12 }}
+            src={isDark ? LOGIN_LOGO_DARK_PATH : LOGIN_LOGO_LIGHT_PATH}
+            alt={APP_DISPLAY_NAME}
+            style={{ width: 48, height: 48, marginBottom: 12, objectFit: "contain" }}
           />
           <h2 style={{ margin: 0, fontWeight: 600, fontSize: 20 }}>
             {isRegister ? t("login.registerTitle") : t("login.title")}

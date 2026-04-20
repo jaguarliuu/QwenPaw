@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-click build: console -> conda-pack -> QwenPaw.app. Run from repo root.
+# One-click build: console -> conda-pack -> StateGrid Desktop.app. Run from repo root.
 # Requires: conda, node/npm (for console). Optional: icon.icns in assets/.
 
 set -e
@@ -8,7 +8,7 @@ cd "$REPO_ROOT"
 PACK_DIR="$(cd "$(dirname "$0")" && pwd)"
 DIST="${DIST:-dist}"
 ARCHIVE="${DIST}/qwenpaw-env.tar.gz"
-APP_NAME="QwenPaw"
+APP_NAME="StateGrid Desktop"
 APP_DIR="${DIST}/${APP_NAME}.app"
 
 echo "== Building wheel (includes console frontend) =="
@@ -89,7 +89,7 @@ LOG_LEVEL="${QWENPAW_LOG_LEVEL:-info}"
 
 if [ ! -t 2 ]; then
   mkdir -p "$HOME/.qwenpaw"
-  { echo "=== $(date) QwenPaw starting ==="
+  { echo "=== $(date) StateGrid Desktop starting ==="
     echo "ENV_DIR=$ENV_DIR"
     echo "Python: $ENV_DIR/bin/python (exists=$([ -x "$ENV_DIR/bin/python" ] && echo yes || echo no))"
     echo "PATH=$PATH"
@@ -170,7 +170,7 @@ cat > "${APP_DIR}/Contents/Info.plist" << INFOPLIST
   <key>CFBundleShortVersionString</key><string>${VERSION}</string>
   ${ICON_PLIST}<key>NSHighResolutionCapable</key><true/>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
-  <key>NSDesktopFolderUsageDescription</key><string>QwenPaw may access files in your Desktop folder if you use file-related features. You can choose Don'\''t Allow; the app will still run with limited file access.</string>
+  <key>NSDesktopFolderUsageDescription</key><string>StateGrid Desktop may access files in your Desktop folder if you use file-related features. You can choose Don'\''t Allow; the app will still run with limited file access.</string>
 </dict>
 </plist>
 INFOPLIST
@@ -178,7 +178,7 @@ INFOPLIST
 echo "== Built ${APP_DIR} =="
 # Optional: create zip for distribution (set CREATE_ZIP=1)
 if [[ -n "${CREATE_ZIP}" ]]; then
-  ZIP_NAME="${DIST}/QwenPaw-${VERSION}-macOS.zip"
+  ZIP_NAME="${DIST}/StateGrid-Desktop-${VERSION}-macOS.zip"
   ditto -c -k --sequesterRsrc --keepParent "${APP_DIR}" "${ZIP_NAME}"
   echo "== Created ${ZIP_NAME} =="
 fi

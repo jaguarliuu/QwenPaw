@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 from ..utils import schedule_agent_reload
 from ...config import load_config
+from ...config.config import EmailToolConfig
 
 router = APIRouter(prefix="/tools", tags=["tools"])
 
@@ -31,6 +32,10 @@ class ToolInfo(BaseModel):
         description="Whether to execute the tool asynchronously in background",
     )
     icon: str = Field(default="🔧", description="Emoji icon for the tool")
+
+
+class EmailToolConfigBody(EmailToolConfig):
+    """SMTP configuration payload for the send_email tool."""
 
 
 @router.get("", response_model=List[ToolInfo])
@@ -178,3 +183,31 @@ async def update_tool_async_execution(
         async_execution=tool_config.async_execution,
         icon=tool_config.icon,
     )
+
+
+@router.get("/send_email/config", response_model=EmailToolConfigBody)
+async def get_send_email_config(request: Request) -> EmailToolConfigBody:
+    """Return SMTP configuration for the current agent."""
+    from ..agent_context import get_agent_for_request
+    from ...config.config import load_agent_config
+
+    workspace = await get_agent_for_request(request)
+    agent_config = load_agent_config(workspace.agent_id)
+    return EmailToolConfigBody.model_validate(agent_config.email.model_dump())
+
+
+@router.put("/send_email/config", response_model=EmailToolConfigBody)
+async def update_send_email_config(
+    body: EmailToolConfigBody,
+    request: Request,
+) -> EmailToolConfigBody:
+    """Persist SMTP configuration for the current agent."""
+    from ..agent_context import get_agent_for_request
+    from ...config.config import load_agent_config, save_agent_config
+
+    workspace = await get_agent_for_request(request)
+    agent_config = load_agent_config(workspace.agent_id)
+    agent_config.email = EmailToolConfig.model_validate(body.model_dump())
+    save_agent_config(workspace.agent_id, agent_config)
+    schedule_agent_reload(request, workspace.agent_id)
+    return EmailToolConfigBody.model_validate(agent_config.email.model_dump())

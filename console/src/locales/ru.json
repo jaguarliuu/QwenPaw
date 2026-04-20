@@ -1128,7 +1128,27 @@
     "enableAllSuccess": "Все инструменты включены",
     "disableAllSuccess": "Все инструменты отключены",
     "allEnabled": "Все инструменты уже включены",
-    "allDisabled": "Все инструменты уже отключены"
+    "allDisabled": "Все инструменты уже отключены",
+    "emailConfigTitle": "SMTP инструмент почты",
+    "emailConfigDescription": "Настройте встроенный инструмент send_email для внутренней исходящей почты.",
+    "emailConfigSaved": "SMTP-конфигурация сохранена",
+    "emailConfigSaveFailed": "Не удалось сохранить SMTP-конфигурацию",
+    "email": {
+      "host": "SMTP хост",
+      "hostRequired": "Введите SMTP хост",
+      "port": "SMTP порт",
+      "portRequired": "Введите SMTP порт",
+      "username": "Имя пользователя",
+      "password": "Пароль",
+      "fromAddress": "Адрес отправителя",
+      "fromAddressRequired": "Введите адрес отправителя",
+      "fromName": "Имя отправителя",
+      "replyTo": "Reply-To",
+      "timeout": "Таймаут (секунды)",
+      "useSsl": "Использовать SSL",
+      "useStarttls": "Использовать STARTTLS",
+      "allowUntrustedTls": "Разрешить недоверенный TLS"
+    }
   },
   "modelConfig": {
     "promptTitle": "Требуется LLM-модель — выберите в Chat после настройки",
@@ -1361,7 +1381,7 @@
     }
   },
   "login": {
-    "title": "Вход в QwenPaw",
+    "title": "Вход в StateGrid Desktop",
     "registerTitle": "Создание аккаунта",
     "firstUserHint": "Создайте учётную запись администратора для начала работы",
     "usernamePlaceholder": "Имя пользователя",

@@ -299,6 +299,30 @@ class WeixinConfig(BaseChannelConfig):
     media_dir: Optional[str] = None
 
 
+class EmailToolConfig(BaseModel):
+    """SMTP configuration for the built-in send_email tool."""
+
+    host: str = ""
+    port: int = 465
+    username: str = ""
+    password: str = ""
+    from_address: str = ""
+    from_name: str = ""
+    reply_to: str = ""
+    use_ssl: bool = True
+    use_starttls: bool = False
+    timeout_sec: float = Field(default=15.0, gt=0)
+    allow_untrusted_tls: bool = False
+
+    @model_validator(mode="after")
+    def _validate_tls_mode(self):
+        if self.use_ssl and self.use_starttls:
+            raise ValueError(
+                "use_ssl and use_starttls cannot both be enabled",
+            )
+        return self
+
+
 class ChannelConfig(BaseModel):
     """Built-in channel configs; extra keys allowed for plugin channels."""
 
@@ -830,6 +854,10 @@ class AgentProfileConfig(BaseModel):
         default=None,
         description="Tools configuration for this agent",
     )
+    email: EmailToolConfig = Field(
+        default_factory=EmailToolConfig,
+        description="SMTP configuration for the built-in send_email tool",
+    )
     security: Optional["SecurityConfig"] = Field(
         default=None,
         description="Security configuration for this agent",
@@ -1110,6 +1138,12 @@ def _default_builtin_tools() -> Dict[str, BuiltinToolConfig]:
             enabled=True,
             description="Send files to user",
             icon="📤",
+        ),
+        "send_email": BuiltinToolConfig(
+            name="send_email",
+            enabled=True,
+            description="Send email via configured SMTP server",
+            icon="✉️",
         ),
         "get_current_time": BuiltinToolConfig(
             name="get_current_time",

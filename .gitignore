@@ -113,3 +113,4 @@ src/.hypothesis/
 .worktrees/
 
 example/
+debug/
