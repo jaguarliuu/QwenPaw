@@ -39,6 +39,17 @@ Section "StateGrid Desktop" SEC01
   WriteRegStr HKCU "Software\StateGridDesktop" "InstallPath" "$INSTDIR"
   WriteUninstaller "$INSTDIR\Uninstall.exe"
 
+  ; Make the app visible in Windows "Installed apps" and support normal uninstall.
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\StateGridDesktop" "DisplayName" "StateGrid Desktop"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\StateGridDesktop" "DisplayVersion" "${QWENPAW_VERSION}"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\StateGridDesktop" "Publisher" "StateGrid"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\StateGridDesktop" "InstallLocation" "$INSTDIR"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\StateGridDesktop" "DisplayIcon" "$INSTDIR\icon.ico"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\StateGridDesktop" "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\StateGridDesktop" "QuietUninstallString" "$\"$INSTDIR\Uninstall.exe$\" /S"
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\StateGridDesktop" "NoModify" 1
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\StateGridDesktop" "NoRepair" 1
+
   ; Main shortcut - uses VBS to hide console window
   CreateShortcut "$SMPROGRAMS\StateGrid Desktop.lnk" "$INSTDIR\StateGrid Desktop.vbs" "" "$INSTDIR\icon.ico" 0
   CreateShortcut "$DESKTOP\StateGrid Desktop.lnk" "$INSTDIR\StateGrid Desktop.vbs" "" "$INSTDIR\icon.ico" 0
@@ -53,4 +64,5 @@ Section "Uninstall"
   Delete "$DESKTOP\StateGrid Desktop.lnk"
   RMDir /r "$INSTDIR"
   DeleteRegKey HKCU "Software\StateGridDesktop"
+  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\StateGridDesktop"
 SectionEnd

@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 """Tests for agent identity in system prompt."""
 import tempfile
+import json
 from pathlib import Path
 import pytest
-from qwenpaw.agents.prompt import build_system_prompt_from_working_dir
+from qwenpaw.agents.prompt import (
+    DEFAULT_SYS_PROMPT,
+    build_system_prompt_from_working_dir,
+)
 
 
 @pytest.fixture
@@ -96,3 +100,21 @@ def test_prompt_identity_format(temp_workspace):  # pylint: disable=W0621
         "This is your unique identifier in the multi-agent system.\n\n"
     )
     assert expected_header in prompt
+
+
+def test_default_system_prompt_uses_stategrid_identity():
+    """Default fallback prompt should use the internal assistant identity."""
+    assert "国家电网智能办公应用助手" in DEFAULT_SYS_PROMPT
+    assert "helpful assistant" not in DEFAULT_SYS_PROMPT
+
+
+def test_tokenizer_chat_template_uses_stategrid_identity():
+    """Tokenizer fallback prompt should not expose Qwen identity."""
+    tokenizer_config = Path(
+        "src/qwenpaw/tokenizer/tokenizer_config.json",
+    )
+    data = json.loads(tokenizer_config.read_text(encoding="utf-8"))
+    chat_template = data["chat_template"]
+
+    assert "国家电网智能办公应用助手" in chat_template
+    assert "You are Qwen, created by Alibaba Cloud" not in chat_template

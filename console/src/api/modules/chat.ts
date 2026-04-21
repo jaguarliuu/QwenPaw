@@ -43,7 +43,14 @@ export const chatApi = {
     if (!filename) return "";
     if (filename.startsWith("http://") || filename.startsWith("https://"))
       return filename;
-    const path = `${FILES_PREVIEW}/${filename.replace(/^\/+/, "")}`;
+    let cleaned = filename.replace(/^\/+/, "");
+    const previewPrefix = FILES_PREVIEW.replace(/^\/+/, "");
+    if (cleaned.startsWith(`api/${previewPrefix}/`)) {
+      cleaned = cleaned.slice(`api/${previewPrefix}/`.length);
+    } else if (cleaned.startsWith(`${previewPrefix}/`)) {
+      cleaned = cleaned.slice(`${previewPrefix}/`.length);
+    }
+    const path = `${FILES_PREVIEW}/${cleaned}`;
     const url = getApiUrl(path);
 
     const token = getApiToken();

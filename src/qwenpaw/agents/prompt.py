@@ -19,7 +19,8 @@ logger = logging.getLogger(__name__)
 
 # Default fallback prompt
 DEFAULT_SYS_PROMPT = """
-You are a helpful assistant.
+你是国家电网智能办公应用助手。
+请专业、准确、简洁地协助用户完成办公相关任务。
 """
 
 # Backward compatibility alias
@@ -412,6 +413,21 @@ def get_active_model_supports_multimodal() -> bool:
     return bool(model_info.supports_multimodal)
 
 
+def get_active_model_multimodal_raw() -> bool | None:
+    """Return the raw multimodal capability for the active model.
+
+    Returns ``True`` when multimodal support is confirmed by either the
+    combined flag or media-specific flags, ``False`` when the model is
+    explicitly text-only, and ``None`` when capability is unknown.
+    """
+    model_info, _ = _get_active_model_info()
+    if model_info is None:
+        return None
+    if model_info.supports_image or model_info.supports_video:
+        return True
+    return model_info.supports_multimodal
+
+
 def build_multimodal_hint() -> str:
     """Build a short system-prompt snippet describing multimodal capability."""
     model_info, model_name = _get_active_model_info()
@@ -440,6 +456,7 @@ __all__ = [
     "build_bootstrap_guidance",
     "build_multimodal_hint",
     "format_multimodal_hint",
+    "get_active_model_multimodal_raw",
     "get_active_model_supports_multimodal",
     "PromptBuilder",
     "PromptConfig",
