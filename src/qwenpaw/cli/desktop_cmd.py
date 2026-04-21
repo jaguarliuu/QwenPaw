@@ -88,9 +88,10 @@ if sys.platform == "win32":
     _TRAY_CALLBACK_MESSAGE = _WM_APP + 1
     _TRAY_MENU_RESTORE_ID = 1001
     _TRAY_MENU_EXIT_ID = 1002
-    # Some packaged Python runtimes on Windows do not expose
-    # ctypes.wintypes.LRESULT. Fall back to pointer-sized signed integer.
+    # Some packaged Python runtimes on Windows omit a few wintypes aliases.
+    # Fall back to pointer-sized primitives for missing handle/result types.
     _LRESULT = getattr(wintypes, "LRESULT", ctypes.c_ssize_t)
+    _HCURSOR = getattr(wintypes, "HCURSOR", ctypes.c_void_p)
 
     class _GUID(ctypes.Structure):
         _fields_ = [
@@ -130,7 +131,7 @@ if sys.platform == "win32":
             ("cbWndExtra", ctypes.c_int),
             ("hInstance", wintypes.HINSTANCE),
             ("hIcon", wintypes.HICON),
-            ("hCursor", wintypes.HCURSOR),
+            ("hCursor", _HCURSOR),
             ("hbrBackground", wintypes.HBRUSH),
             ("lpszMenuName", wintypes.LPCWSTR),
             ("lpszClassName", wintypes.LPCWSTR),

@@ -194,18 +194,15 @@ def test_exit_from_tray_requests_native_window_close() -> None:
     assert window.destroy_calls == 0
 
 
-def test_desktop_cmd_imports_when_wintypes_lresult_missing(monkeypatch) -> None:
+def test_desktop_cmd_imports_when_wintypes_win_handles_missing(
+    monkeypatch,
+) -> None:
     from ctypes import wintypes
 
     monkeypatch.setattr(sys, "platform", "win32")
     monkeypatch.delattr(wintypes, "LRESULT", raising=False)
+    monkeypatch.delattr(wintypes, "HCURSOR", raising=False)
     monkeypatch.setattr(ctypes, "WINFUNCTYPE", ctypes.CFUNCTYPE, raising=False)
-    monkeypatch.setattr(
-        wintypes,
-        "HCURSOR",
-        getattr(wintypes, "HCURSOR", ctypes.c_void_p),
-        raising=False,
-    )
 
     sys.modules.pop("qwenpaw.cli.desktop_cmd", None)
     module = importlib.import_module("qwenpaw.cli.desktop_cmd")
