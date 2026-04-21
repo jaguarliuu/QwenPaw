@@ -325,7 +325,8 @@ export const skillApi = {
   },
 
   importSelectedPoolBuiltins: (payload: {
-    skill_names: string[];
+    skill_names?: string[];
+    imports?: Array<{ skill_name: string; language?: string }>;
     overwrite_conflicts?: boolean;
   }) =>
     request<{
@@ -334,19 +335,34 @@ export const skillApi = {
       unchanged: string[];
       conflicts: Array<{
         skill_name: string;
+        language?: string;
+        status?: string;
+        source_name?: string;
         source_version_text?: string;
         current_version_text?: string;
         current_source?: string;
+        current_language?: string;
       }>;
     }>("/skills/pool/import-builtin", {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        overwrite_conflicts: payload.overwrite_conflicts,
+        imports: payload.imports,
+        skill_names:
+          payload.skill_names ||
+          Array.from(
+            new Set((payload.imports || []).map((item) => item.skill_name)),
+          ),
+      }),
     }),
 
-  updatePoolBuiltin: (skillName: string) =>
+  updatePoolBuiltin: (skillName: string, language?: string) =>
     request<Record<string, unknown>>(
       `/skills/pool/${encodeURIComponent(skillName)}/update-builtin`,
-      { method: "POST" },
+      {
+        method: "POST",
+        body: JSON.stringify(language ? { language } : {}),
+      },
     ),
 
   deleteSkillPoolSkill: (skillName: string) =>

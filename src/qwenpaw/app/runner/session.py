@@ -21,6 +21,30 @@ from ...exceptions import AgentStateError
 logger = logging.getLogger(__name__)
 
 
+def _safe_json_loads(content: str, filepath: str = "") -> dict:
+    """Parse JSON content with best-effort recovery for tail corruption."""
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        pass
+
+    try:
+        result, _ = json.JSONDecoder().raw_decode(content)
+        logger.warning(
+            "Session file %s had corrupted JSON. "
+            "Recovered first valid object via raw_decode.",
+            filepath,
+        )
+        return result
+    except json.JSONDecodeError:
+        logger.warning(
+            "Session file %s is completely corrupted and could not "
+            "be recovered. Returning empty dict.",
+            filepath,
+        )
+        return {}
+
+
 # Characters forbidden in Windows filenames
 _UNSAFE_FILENAME_RE = re.compile(r'[\\/:*?"<>|]')
 
@@ -111,7 +135,7 @@ class SafeJSONSession(SessionBase):
                 errors="surrogatepass",
             ) as f:
                 content = await f.read()
-                states = json.loads(content)
+                states = _safe_json_loads(content, session_save_path)
 
             for name, state_module in state_modules_mapping.items():
                 if name in states:
@@ -154,7 +178,7 @@ class SafeJSONSession(SessionBase):
                 errors="surrogatepass",
             ) as f:
                 content = await f.read()
-                states = json.loads(content)
+                states = _safe_json_loads(content, session_save_path)
 
         else:
             if not create_if_not_exist:
@@ -223,7 +247,7 @@ class SafeJSONSession(SessionBase):
                 errors="surrogatepass",
             ) as file:
                 content = await file.read()
-                states = json.loads(content)
+                states = _safe_json_loads(content, session_save_path)
 
             logger.info(
                 "Get session state dict from %s successfully.",

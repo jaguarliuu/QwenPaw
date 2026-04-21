@@ -88,6 +88,9 @@ if sys.platform == "win32":
     _TRAY_CALLBACK_MESSAGE = _WM_APP + 1
     _TRAY_MENU_RESTORE_ID = 1001
     _TRAY_MENU_EXIT_ID = 1002
+    # Some packaged Python runtimes on Windows do not expose
+    # ctypes.wintypes.LRESULT. Fall back to pointer-sized signed integer.
+    _LRESULT = getattr(wintypes, "LRESULT", ctypes.c_ssize_t)
 
     class _GUID(ctypes.Structure):
         _fields_ = [
@@ -112,7 +115,7 @@ if sys.platform == "win32":
         ]
 
     _WNDPROC = ctypes.WINFUNCTYPE(
-        wintypes.LRESULT,
+        _LRESULT,
         wintypes.HWND,
         wintypes.UINT,
         wintypes.WPARAM,

@@ -30,6 +30,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, AsyncGenerator
 
+import httpx
 from agentscope.model import ChatModelBase
 from agentscope.model._model_response import ChatResponse
 from agentscope_runtime.engine.schemas.exception import (
@@ -123,6 +124,9 @@ def _get_anthropic_retryable() -> tuple[type[Exception], ...]:
 
 def _is_retryable(exc: Exception) -> bool:
     """Return *True* if *exc* should trigger a retry."""
+    if isinstance(exc, httpx.RemoteProtocolError):
+        return True
+
     retryable = _get_openai_retryable() + _get_anthropic_retryable()
     if retryable and isinstance(exc, retryable):
         return True

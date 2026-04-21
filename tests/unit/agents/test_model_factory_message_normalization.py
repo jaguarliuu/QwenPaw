@@ -193,6 +193,35 @@ def test_force_strip_media_flag_overrides_multimodal_support(
     assert normalized[0].content[0]["text"] == MEDIA_UNSUPPORTED_PLACEHOLDER
 
 
+def test_fixup_media_list_replaces_missing_local_tool_result_media(
+    monkeypatch,
+) -> None:
+    missing = "/tmp/qwenpaw-missing-image.png"
+    monkeypatch.setattr(model_factory.os.path, "exists", lambda path: False)
+
+    blocks = [
+        {
+            "type": "tool_result",
+            "output": [
+                {
+                    "type": "image",
+                    "source": {
+                        "type": "url",
+                        "url": missing,
+                    },
+                },
+            ],
+        },
+    ]
+
+    model_factory._fixup_media_list(blocks)
+
+    assert blocks[0]["output"][0] == {
+        "type": "text",
+        "text": "[Image unavailable — file deleted from disk]",
+    }
+
+
 def test_formatter_flags_returned_correctly() -> None:
     """Test that formatter family flags are returned correctly."""
     msgs = [Msg(name="user", role="user", content="Hello")]
