@@ -732,7 +732,28 @@ class WebViewAPI:
         """Handle desktop close decision from the frontend dialog."""
         if self._close_controller is None:
             return
-        self._close_controller.handle_close_choice(action, bool(remember))
+        threading.Thread(
+            target=self._handle_close_choice_async,
+            args=(action, bool(remember)),
+            name="stategrid-close-choice",
+            daemon=True,
+        ).start()
+
+    def _handle_close_choice_async(
+        self,
+        action: str,
+        remember: bool,
+    ) -> None:
+        try:
+            if self._close_controller is None:
+                return
+            self._close_controller.handle_close_choice(action, remember)
+        except Exception as e:
+            logger.warning(
+                "Failed to handle desktop close choice '%s': %s",
+                action,
+                e,
+            )
 
 
 def _find_free_port(host: str = "127.0.0.1") -> int:

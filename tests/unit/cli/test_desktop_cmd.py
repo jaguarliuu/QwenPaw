@@ -4,6 +4,7 @@ from __future__ import annotations
 import ctypes
 import importlib
 import sys
+import threading
 from pathlib import Path
 
 
@@ -208,3 +209,31 @@ def test_desktop_cmd_imports_when_wintypes_win_handles_missing(
     module = importlib.import_module("qwenpaw.cli.desktop_cmd")
 
     assert hasattr(module, "desktop_cmd")
+
+
+def test_webview_api_dispatches_close_choice_asynchronously() -> None:
+    from qwenpaw.cli.desktop_cmd import WebViewAPI
+
+    called = threading.Event()
+    caller_ident = threading.get_ident()
+    observed: dict[str, object] = {}
+
+    class _FakeController:
+        def handle_close_choice(self, action: str, remember: bool) -> None:
+            observed["action"] = action
+            observed["remember"] = remember
+            observed["thread_ident"] = threading.get_ident()
+            called.set()
+
+    api = WebViewAPI()
+    api.bind_close_controller(_FakeController())
+
+    api.handle_close_choice("exit", remember=True)
+
+    assert called.wait(timeout=1.0)
+    assert observed == {
+        "action": "exit",
+        "remember": True,
+        "thread_ident": observed["thread_ident"],
+    }
+    assert observed["thread_ident"] != caller_ident
