@@ -756,6 +756,30 @@ class WebViewAPI:
             )
 
 
+def _bind_desktop_window_events(
+    window,
+    *,
+    shell_integration=None,
+) -> None:
+    """Bind non-intrusive desktop window events.
+
+    We intentionally do not hook the native closing event so the desktop app
+    follows the platform default close behavior.
+    """
+    events = getattr(window, "events", None)
+    if events is None:
+        return
+
+    if shell_integration is not None:
+        try:
+            events.loaded += shell_integration.initialize
+        except Exception as e:
+            logger.warning(
+                "Failed to register desktop loaded event: %s",
+                e,
+            )
+
+
 def _find_free_port(host: str = "127.0.0.1") -> int:
     """Bind to port 0 and return the OS-assigned free port."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -906,21 +930,10 @@ def desktop_cmd(
                     text_select=True,
                     js_api=api,
                 )
-                close_controller = DesktopCloseController(
+                _bind_desktop_window_events(
                     window,
                     shell_integration=shell_integration,
                 )
-                api.bind_close_controller(close_controller)
-
-                if hasattr(window, "events"):
-                    try:
-                        window.events.loaded += close_controller.on_loaded
-                        window.events.closing += close_controller.on_closing
-                    except Exception as e:
-                        logger.warning(
-                            "Failed to register desktop window events: %s",
-                            e,
-                        )
 
                 logger.info(
                     "Calling webview.start() (blocks until closed)...",

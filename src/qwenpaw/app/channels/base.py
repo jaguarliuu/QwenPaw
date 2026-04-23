@@ -966,6 +966,8 @@ class BaseChannel(ABC):
         status = getattr(event, "status", None)
         if status != RunStatus.InProgress:
             return False
+        if self._filter_tool_messages:
+            return False
         return await self._send_tool_output_content_increment(
             to_handle,
             event,

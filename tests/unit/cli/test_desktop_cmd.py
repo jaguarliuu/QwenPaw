@@ -55,6 +55,26 @@ class _FakeShellIntegration:
         return True
 
 
+class _FakeEventHook:
+    def __init__(self) -> None:
+        self.handlers = []
+
+    def __iadd__(self, handler):
+        self.handlers.append(handler)
+        return self
+
+
+class _FakeWindowEvents:
+    def __init__(self) -> None:
+        self.loaded = _FakeEventHook()
+        self.closing = _FakeEventHook()
+
+
+class _FakeWindowWithEvents:
+    def __init__(self) -> None:
+        self.events = _FakeWindowEvents()
+
+
 def test_desktop_close_action_round_trip(tmp_path: Path, monkeypatch) -> None:
     from qwenpaw.cli import desktop_cmd as desktop_cmd_module
 
@@ -237,3 +257,22 @@ def test_webview_api_dispatches_close_choice_asynchronously() -> None:
         "thread_ident": observed["thread_ident"],
     }
     assert observed["thread_ident"] != caller_ident
+
+
+def test_bind_desktop_window_events_registers_loaded_only() -> None:
+    from qwenpaw.cli.desktop_cmd import _bind_desktop_window_events
+
+    called = []
+
+    class _Shell:
+        def initialize(self) -> None:
+            called.append("initialize")
+
+    window = _FakeWindowWithEvents()
+    _bind_desktop_window_events(window, shell_integration=_Shell())
+
+    assert len(window.events.loaded.handlers) == 1
+    assert len(window.events.closing.handlers) == 0
+
+    window.events.loaded.handlers[0]()
+    assert called == ["initialize"]

@@ -13,6 +13,7 @@ export const CHANNEL_ICON_URLS: Record<string, string> = {
   matrix: "/assets/channels/matrix.png",
   console: "/assets/channels/console.png",
   wecom: "/assets/channels/wecom.png",
+  wechat: "/assets/channels/weixin.png",
   weixin: "/assets/channels/weixin.png",
 };
 

@@ -24,7 +24,6 @@ import MainLayout from "./layouts/MainLayout";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { PluginProvider } from "./plugins/PluginContext";
 import LoginPage from "./pages/Login";
-import DesktopClosePrompt from "./components/DesktopClosePrompt";
 import { authApi } from "./api/modules/auth";
 import { languageApi } from "./api/modules/language";
 import { getApiUrl, getApiToken, clearAuthToken } from "./api/config";
@@ -174,7 +173,6 @@ function AppInner() {
         }}
       >
         <AntdApp>
-          <DesktopClosePrompt />
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route
