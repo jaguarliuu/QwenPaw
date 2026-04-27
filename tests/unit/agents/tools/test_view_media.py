@@ -28,6 +28,7 @@ async def test_view_image_returns_fallback_hint_when_multimodal_is_unavailable(
     result = await view_image(str(image_path))
 
     assert result.content[0]["type"] == "image"
+    assert result.content[0]["source"]["url"] == image_path.resolve().as_uri()
     assert "cannot directly perceive this image" in result.content[1]["text"]
 
 
@@ -53,4 +54,5 @@ async def test_view_video_returns_fallback_hint_when_multimodal_is_unavailable(
     result = await view_video(str(video_path))
 
     assert result.content[0]["type"] == "video"
+    assert result.content[0]["source"]["url"] == video_path.resolve().as_uri()
     assert "cannot directly perceive this video" in result.content[1]["text"]

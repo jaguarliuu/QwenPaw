@@ -124,7 +124,13 @@ def _get_anthropic_retryable() -> tuple[type[Exception], ...]:
 
 def _is_retryable(exc: Exception) -> bool:
     """Return *True* if *exc* should trigger a retry."""
-    if isinstance(exc, httpx.RemoteProtocolError):
+    if isinstance(
+        exc,
+        (
+            httpx.RemoteProtocolError,
+            httpx.TimeoutException,
+        ),
+    ):
         return True
 
     retryable = _get_openai_retryable() + _get_anthropic_retryable()

@@ -28,6 +28,7 @@ from .setup_utils import (
     copy_md_files,
     copy_template_md_files,
     copy_workspace_md_files,
+    normalize_agent_language,
 )
 
 # Token counting
@@ -56,6 +57,7 @@ __all__ = [
     "copy_md_files",
     "copy_template_md_files",
     "copy_workspace_md_files",
+    "normalize_agent_language",
     # Token counting
     "get_token_counter",
     # Tool message utilities

@@ -18,6 +18,7 @@ import {
   PreviewModal,
   SkillScannerSection,
   FileGuardSection,
+  AllowNoAuthHostsTab,
 } from "./components";
 import { PageHeader } from "@/components/PageHeader";
 import styles from "./index.module.less";
@@ -50,6 +51,11 @@ function SecurityPage() {
     reset: () => void;
     saving: boolean;
   } | null>(null);
+  const [allowNoAuthHostsHandlers, setAllowNoAuthHostsHandlers] = useState<{
+    save: () => Promise<void>;
+    reset: () => void;
+    saving: boolean;
+  } | null>(null);
 
   const onFileGuardHandlersReady = useCallback(
     (handlers: {
@@ -58,6 +64,16 @@ function SecurityPage() {
       saving: boolean;
     }) => {
       setFileGuardHandlers(handlers);
+    },
+    [],
+  );
+  const onAllowNoAuthHostsHandlersReady = useCallback(
+    (handlers: {
+      save: () => Promise<void>;
+      reset: () => void;
+      saving: boolean;
+    }) => {
+      setAllowNoAuthHostsHandlers(handlers);
     },
     [],
   );
@@ -379,6 +395,26 @@ function SecurityPage() {
                 </div>
               ),
             },
+            {
+              key: "allowNoAuthHosts",
+              label: (
+                <span className={styles.tabLabel}>
+                  {t("security.allowNoAuthHosts.title")}
+                </span>
+              ),
+              children: (
+                <div className={styles.tabContent}>
+                  <div className={styles.sectionFileGuardContainer}>
+                    <p className={styles.tabDescription}>
+                      {t("security.allowNoAuthHosts.warningDescription")}
+                    </p>
+                    <AllowNoAuthHostsTab
+                      onSave={onAllowNoAuthHostsHandlersReady}
+                    />
+                  </div>
+                </div>
+              ),
+            },
           ]}
         />
       </div>
@@ -411,6 +447,25 @@ function SecurityPage() {
             type="primary"
             onClick={fileGuardHandlers.save}
             loading={fileGuardHandlers.saving}
+          >
+            {t("common.save")}
+          </Button>
+        </div>
+      )}
+
+      {activeTab === "allowNoAuthHosts" && allowNoAuthHostsHandlers && (
+        <div className={styles.footerButtons}>
+          <Button
+            onClick={allowNoAuthHostsHandlers.reset}
+            disabled={allowNoAuthHostsHandlers.saving}
+            style={{ marginRight: 8 }}
+          >
+            {t("common.reset")}
+          </Button>
+          <Button
+            type="primary"
+            onClick={allowNoAuthHostsHandlers.save}
+            loading={allowNoAuthHostsHandlers.saving}
           >
             {t("common.save")}
           </Button>

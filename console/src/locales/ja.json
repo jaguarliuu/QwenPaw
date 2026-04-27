@@ -1012,6 +1012,11 @@
     "maxItersMin": "最大反復回数は1以上である必要があります",
     "autoContinueOnTextOnly": "テキストのみのステップで自動継続",
     "autoContinueOnTextOnlyTooltip": "推論ステップがツール呼び出しなしのテキストのみで終わった場合、ヒントを挿入し同じツール方針でもう1回推論します。多段階タスクの途中停止を減らします。オフにすると従来どおりです。有効時はトークン消費が増える場合があります。",
+    "shellCommandTimeout": "Shell コマンドのタイムアウト（秒）",
+    "shellCommandTimeoutTooltip": "execute_shell_command ツールのデフォルトタイムアウトです。LLM は各呼び出しで timeout 引数により上書きできます。ビルドやデータ処理など時間のかかるタスク向けです。",
+    "shellCommandTimeoutPlaceholder": "タイムアウトを入力",
+    "shellCommandTimeoutRequired": "Shell コマンドのタイムアウトは必須です",
+    "shellCommandTimeoutMin": "Shell コマンドのタイムアウトは 1 秒以上にしてください",
     "maxInputLength": "最大入力長",
     "maxInputLengthTooltip": "モデルのコンテキストウィンドウの最大入力長（トークン数）",
     "maxInputLengthPlaceholder": "最大入力長を入力",
@@ -1270,6 +1275,13 @@
       "userMessage": "ユーザー",
       "assistantMessage": "アシスタント",
       "titleMatch": "タイトル"
+    },
+    "contextMenu": {
+      "open": "開く",
+      "rename": "名前を変更",
+      "pin": "ピン留め",
+      "unpin": "ピン留め解除",
+      "delete": "削除"
     }
   },
   "security": {
@@ -1362,6 +1374,23 @@
       "saveSuccess": "ファイルガード設定を保存しました",
       "saveFailed": "ファイルガード設定の保存に失敗しました",
       "loadFailed": "ファイルガード設定の読み込みに失敗しました"
+    },
+    "allowNoAuthHosts": {
+      "title": "認証不要ホスト",
+      "warningTitle": "セキュリティ警告",
+      "warningDescription": "この一覧のホストは認証なしで API にアクセスできます。既定では localhost のみ許可されています。信頼できる IP のみ追加してください。",
+      "ipAddress": "IP アドレス",
+      "actions": "操作",
+      "add": "追加",
+      "inputPlaceholder": "IP アドレスを入力してください。例: 192.168.1.100 または ::1",
+      "empty": "IP アドレスがありません",
+      "default": "既定",
+      "removeConfirm": "この IP アドレスをホワイトリストから削除しますか？",
+      "duplicate": "この IP アドレスは既に存在します",
+      "invalidIP": "IP アドレスの形式が不正です",
+      "saveSuccess": "認証不要ホスト設定を保存しました",
+      "saveFailed": "認証不要ホスト設定の保存に失敗しました",
+      "loadFailed": "認証不要ホスト設定の読み込みに失敗しました"
     },
     "skillScanner": {
       "title": "スキルスキャナー",

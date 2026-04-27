@@ -25,5 +25,4 @@ async def test_send_file_to_user_resolves_relative_paths(
 
     assert result.content[0]["type"] == "file"
     assert result.content[0]["filename"] == "report.txt"
-    assert result.content[0]["source"]["url"] == f"file://{target.resolve()}"
-
+    assert result.content[0]["source"]["url"] == target.resolve().as_uri()

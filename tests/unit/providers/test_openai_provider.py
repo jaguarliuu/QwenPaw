@@ -266,6 +266,29 @@ async def test_update_config_updates_non_none_values_and_get_info() -> None:
     assert not info.support_connection_check
 
 
+async def test_add_model_and_update_config_trim_whitespace() -> None:
+    provider = _make_provider()
+    provider.extra_models = [ModelInfo(id="gpt-4o-mini", name="existing")]
+
+    ok, msg = await provider.add_model(
+        ModelInfo(id="  gpt-4o-mini  ", name="dup"),
+    )
+
+    provider.update_config(
+        {
+            "name": "  OpenAI Custom  ",
+            "base_url": "  https://trimmed.example/v1  ",
+            "api_key": "  sk-trimmed  ",
+        },
+    )
+
+    assert ok is False
+    assert msg == "Model 'gpt-4o-mini' already exists"
+    assert provider.name == "OpenAI Custom"
+    assert provider.base_url == "https://trimmed.example/v1"
+    assert provider.api_key == "sk-trimmed"
+
+
 async def test_update_config_skips_none_values() -> None:  # noqa: E501
     provider = _make_provider()
     provider.api_key_prefix = "sk-"

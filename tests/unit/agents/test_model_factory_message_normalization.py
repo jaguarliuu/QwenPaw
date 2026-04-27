@@ -222,6 +222,28 @@ def test_fixup_media_list_replaces_missing_local_tool_result_media(
     }
 
 
+def test_format_anthropic_output_items_converts_file_blocks_to_text() -> None:
+    output = [
+        {
+            "type": "file",
+            "filename": "report.html",
+            "source": {
+                "type": "url",
+                "url": "file:///tmp/report.html",
+            },
+        },
+    ]
+
+    formatted = model_factory._format_anthropic_output_items(output)
+
+    assert formatted == [
+        {
+            "type": "text",
+            "text": "File 'report.html' is available at: /tmp/report.html",
+        },
+    ]
+
+
 def test_formatter_flags_returned_correctly() -> None:
     """Test that formatter family flags are returned correctly."""
     msgs = [Msg(name="user", role="user", content="Hello")]

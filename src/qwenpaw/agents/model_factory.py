@@ -14,7 +14,7 @@ import base64
 import logging
 import os
 from typing import List, Sequence, Tuple, Type, Any, Union, Optional
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 from agentscope.formatter import FormatterBase, OpenAIChatFormatter
 from agentscope.model import ChatModelBase, OpenAIChatModel
@@ -54,7 +54,7 @@ def _file_url_to_path(url: str) -> str:
     # Windows: file:///C:/path yields "/C:/path"; remove leading slash.
     if len(s) >= 3 and s.startswith("/") and s[1].isalpha() and s[2] == ":":
         s = s[1:]
-    return s
+    return unquote(s)
 
 
 logger = logging.getLogger(__name__)
@@ -306,7 +306,7 @@ def _format_anthropic_output_items(
     seen_media: set[str] | None = None,
 ) -> list:
     """Format a list of tool_result output blocks for Anthropic API,
-    converting image and video blocks as needed.
+    converting image, video, and file blocks as needed.
 
     When *seen_media* is provided, media blocks whose source has already
     been encoded in a preceding top-level block are replaced with a
@@ -314,7 +314,29 @@ def _format_anthropic_output_items(
     """
     result: list[dict] = []
     for item in output:
-        if item.get("type") not in ("image", "video"):
+        item_type = item.get("type")
+
+        if item_type == "file":
+            source = item.get("source", {})
+            file_url = source.get("url", "")
+            filename = (
+                item.get("filename")
+                or file_url.rsplit("/", 1)[-1]
+                or "unknown"
+            )
+            readable_path = _file_url_to_path(file_url) if file_url else ""
+            result.append(
+                {
+                    "type": "text",
+                    "text": (
+                        f"File '{filename}' is available at: "
+                        f"{readable_path or filename}"
+                    ),
+                },
+            )
+            continue
+
+        if item_type not in ("image", "video"):
             result.append(item)
             continue
 
@@ -385,7 +407,7 @@ def _format_anthropic_messages(  # pylint: disable=too-many-branches
                 output = block.get("output")
                 if output is None:
                     content_value: list = [
-                        {"type": "text", "text": None},
+                        {"type": "text", "text": ""},
                     ]
                 elif isinstance(output, list):
                     content_value = _format_anthropic_output_items(
@@ -416,7 +438,7 @@ def _format_anthropic_messages(  # pylint: disable=too-many-branches
 
         msg_anthropic: dict = {
             "role": role,
-            "content": content_blocks or None,
+            "content": content_blocks or "",
         }
 
         if msg_anthropic["content"] or msg_anthropic.get(
@@ -650,9 +672,12 @@ def _fixup_media_list(items: list) -> None:
             if source["url"].startswith("file://"):
                 source["url"] = _file_url_to_path(source["url"])
             url = source["url"]
-            if not url.startswith(("http://", "https://", "data:")) and not os.path.exists(url):
+            if not url.startswith(
+                ("http://", "https://", "data:"),
+            ) and not os.path.exists(url):
                 logger.warning(
-                    "Media file no longer exists, replacing with placeholder: %s",
+                    "Media file no longer exists, "
+                    "replacing with placeholder: %s",
                     url,
                 )
                 items[i] = {

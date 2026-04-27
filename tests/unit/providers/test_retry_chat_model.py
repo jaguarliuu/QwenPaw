@@ -12,3 +12,9 @@ def test_remote_protocol_error_is_retryable() -> None:
     )
 
     assert _is_retryable(exc) is True
+
+
+def test_timeout_exception_is_retryable() -> None:
+    exc = httpx.TimeoutException("timed out")
+
+    assert _is_retryable(exc) is True

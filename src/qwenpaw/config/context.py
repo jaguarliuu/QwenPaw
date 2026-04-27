@@ -56,3 +56,19 @@ def set_current_recent_max_bytes(max_bytes: int | None) -> None:
         max_bytes: Byte limit for recent tool output truncation.
     """
     current_recent_max_bytes.set(max_bytes)
+
+
+current_shell_command_timeout: ContextVar[float | None] = ContextVar(
+    "current_shell_command_timeout",
+    default=None,
+)
+
+
+def get_current_shell_command_timeout() -> float | None:
+    """Get the configured default timeout for execute_shell_command."""
+    return current_shell_command_timeout.get()
+
+
+def set_current_shell_command_timeout(timeout: float | None) -> None:
+    """Set the configured default timeout for execute_shell_command."""
+    current_shell_command_timeout.set(timeout)

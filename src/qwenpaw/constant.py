@@ -122,6 +122,24 @@ JOBS_FILE = EnvVarLoader.get_str("QWENPAW_JOBS_FILE", "jobs.json")
 
 CHATS_FILE = EnvVarLoader.get_str("QWENPAW_CHATS_FILE", "chats.json")
 
+# Languages supported by built-in agent markdown templates.
+def _discover_agent_languages() -> frozenset[str]:
+    md_root = Path(__file__).resolve().parent / "agents" / "md_files"
+    if md_root.is_dir():
+        langs = {
+            entry.name
+            for entry in md_root.iterdir()
+            if entry.is_dir()
+            and not entry.name.startswith(".")
+            and any(entry.glob("*.md"))
+        }
+        if langs:
+            return frozenset(langs)
+    return frozenset({"en", "zh", "ru"})
+
+
+SUPPORTED_AGENT_LANGUAGES: frozenset[str] = _discover_agent_languages()
+
 # Builtin Q&A helper profile.  agent_id keeps "QwenPaw" prefix for existing
 # workspaces and agent.json; do not rename.
 BUILTIN_QA_AGENT_ID = "QwenPaw_QA_Agent_0.2"

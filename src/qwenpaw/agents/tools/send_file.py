@@ -4,6 +4,7 @@
 import os
 import mimetypes
 import unicodedata
+from pathlib import Path
 
 from agentscope.tool import ToolResponse
 from agentscope.message import (
@@ -76,8 +77,8 @@ async def send_file_to_user(
 
     try:
         # Use local file URL instead of base64
-        absolute_path = os.path.abspath(file_path)
-        file_url = f"file://{absolute_path}"
+        resolved_path = Path(file_path).resolve()
+        file_url = resolved_path.as_uri()
         source = {"type": "url", "url": file_url}
 
         if as_type == "image":
@@ -107,7 +108,7 @@ async def send_file_to_user(
                 FileBlock(
                     type="file",
                     source=source,
-                    filename=os.path.basename(file_path),
+                    filename=resolved_path.name,
                 ),
                 TextBlock(type="text", text="File sent successfully."),
             ],

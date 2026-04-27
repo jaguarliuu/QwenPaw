@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
 import json
 import re
 from pathlib import Path
@@ -683,6 +682,15 @@ class AgentsRunningConfig(BaseModel):
         ),
     )
 
+    shell_command_timeout: float = Field(
+        default=60.0,
+        ge=1.0,
+        description=(
+            "Default timeout in seconds for execute_shell_command. "
+            "Can still be overridden per tool call."
+        ),
+    )
+
     @model_validator(mode="after")
     def validate_llm_retry_backoff(self) -> "AgentsRunningConfig":
         """Validate LLM retry backoff relationships."""
@@ -1031,18 +1039,17 @@ class MCPConfig(BaseModel):
     """MCP clients configuration.
 
     Uses a dict to allow dynamic client definitions.
-    Default tavily_search client is created and auto-enabled if API key exists.
+    Default tavily_search client is created but disabled by default.
     """
 
     clients: Dict[str, MCPClientConfig] = Field(
         default_factory=lambda: {
             "tavily_search": MCPClientConfig(
                 name="tavily_mcp",
-                # Auto-enable if TAVILY_API_KEY exists in environment
-                enabled=bool(os.getenv("TAVILY_API_KEY")),
+                enabled=False,
                 command="npx",
                 args=["-y", "tavily-mcp@latest"],
-                env={"TAVILY_API_KEY": os.getenv("TAVILY_API_KEY", "")},
+                env={"TAVILY_API_KEY": ""},
             ),
         },
     )
@@ -1351,6 +1358,13 @@ class SecurityConfig(BaseModel):
     file_guard: FileGuardConfig = Field(default_factory=FileGuardConfig)
     skill_scanner: SkillScannerConfig = Field(
         default_factory=SkillScannerConfig,
+    )
+    allow_no_auth_hosts: List[str] = Field(
+        default_factory=lambda: ["127.0.0.1", "::1"],
+        description=(
+            "Client IPs that can access API endpoints without authentication. "
+            "Defaults to localhost only."
+        ),
     )
 
 

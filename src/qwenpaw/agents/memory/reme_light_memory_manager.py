@@ -19,7 +19,6 @@ from agentscope.tool import Toolkit, ToolResponse
 
 from qwenpaw.agents.memory.base_memory_manager import BaseMemoryManager
 from qwenpaw.agents.model_factory import create_model_and_formatter
-from qwenpaw.agents.tools import read_file, write_file, edit_file
 from qwenpaw.agents.utils import get_token_counter
 from qwenpaw.config import load_config
 from qwenpaw.config.config import load_agent_config
@@ -36,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 _EXPECTED_REME_VERSION = "0.3.1.8"
 _REME_STORE_VERSION = "v1"
+MAX_QUERY_TOKENS = 50
 
 
 class ReMeLightMemoryManager(BaseMemoryManager):
@@ -143,6 +143,12 @@ See: https://docs.trychroma.com/docs/overview/troubleshooting#sqlite
         )
 
         self.summary_toolkit = Toolkit()
+        from qwenpaw.agents.tools import (  # noqa: PLC0415
+            edit_file,
+            read_file,
+            write_file,
+        )
+
         self.summary_toolkit.register_tool_function(read_file)
         self.summary_toolkit.register_tool_function(write_file)
         self.summary_toolkit.register_tool_function(edit_file)
@@ -428,11 +434,71 @@ See: https://docs.trychroma.com/docs/overview/troubleshooting#sqlite
                     ),
                 ],
             )
+        try:
+            query_final = " ".join(self.tokenize_query(query))
+            logger.info("Tokenized query: %s", query_final)
+        except Exception as exc:
+            logger.exception(
+                "Failed to tokenize query: %s query=%s",
+                exc,
+                query,
+            )
+            query_final = query
+
         return await self._reme.memory_search(
-            query=query,
+            query=query_final,
             max_results=max_results,
             min_score=min_score,
         )
+
+    @staticmethod
+    def _is_cjk(char: str) -> bool:
+        """Check if a character is CJK (Chinese/Japanese/Korean)."""
+        cp = ord(char)
+        return (
+            (0x4E00 <= cp <= 0x9FFF)
+            or (0x3400 <= cp <= 0x4DBF)
+            or (0xF900 <= cp <= 0xFAFF)
+        )
+
+    def tokenize_query(
+        self,
+        query: str,
+        max_tokens: int = MAX_QUERY_TOKENS,
+    ) -> list[str]:
+        """Tokenize query for better CJK memory search recall."""
+        tokens: list[str] = []
+
+        for word in query.split():
+            if not word:
+                continue
+
+            if not any(self._is_cjk(c) for c in word):
+                tokens.append(word)
+                if len(tokens) >= max_tokens:
+                    break
+                continue
+
+            non_cjk_buffer: list[str] = []
+            for char in word:
+                if self._is_cjk(char):
+                    if non_cjk_buffer:
+                        tokens.append("".join(non_cjk_buffer))
+                        non_cjk_buffer = []
+                    tokens.append(char)
+                else:
+                    non_cjk_buffer.append(char)
+
+                if len(tokens) >= max_tokens:
+                    break
+
+            if non_cjk_buffer and len(tokens) < max_tokens:
+                tokens.append("".join(non_cjk_buffer))
+
+            if len(tokens) >= max_tokens:
+                break
+
+        return tokens[:max_tokens]
 
     def get_in_memory_memory(self, **_kwargs) -> "ReMeInMemoryMemory | None":
         """Retrieve the in-memory memory object with token counting support."""

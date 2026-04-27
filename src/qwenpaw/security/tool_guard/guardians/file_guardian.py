@@ -5,6 +5,9 @@ Blocks tool calls that target files explicitly listed in a sensitive-file set.
 """
 from __future__ import annotations
 
+import ntpath
+import os
+import re
 import shlex
 import uuid
 from pathlib import Path
@@ -30,10 +33,19 @@ _TOOL_FILE_PARAMS: dict[str, tuple[str, ...]] = {
 _SECRET_DIR_CURRENT_NAME = ".qwenpaw.secret"
 _SECRET_DIR_LEGACY_NAME = ".copaw.secret"
 
+
+def _with_platform_trailing_sep(path: str | Path) -> str:
+    """Return a path string with a trailing separator."""
+    raw = str(path)
+    if raw.endswith(("/", "\\")):
+        return raw
+    return raw + ("\\" if os.name == "nt" else "/")
+
+
 _COMPAT_SECRET_DIRS: tuple[str, ...] = (
-    str(SECRET_DIR) + "/",
-    str(Path.home() / _SECRET_DIR_LEGACY_NAME) + "/",
-    str(Path.home() / _SECRET_DIR_CURRENT_NAME) + "/",
+    _with_platform_trailing_sep(SECRET_DIR),
+    _with_platform_trailing_sep(Path.home() / _SECRET_DIR_LEGACY_NAME),
+    _with_platform_trailing_sep(Path.home() / _SECRET_DIR_CURRENT_NAME),
 )
 
 
@@ -66,9 +78,43 @@ def _workspace_root() -> Path:
     return Path(get_current_workspace_dir() or WORKING_DIR)
 
 
+_WIN_DRIVE_RE = re.compile(r"^[A-Za-z]:[\\/]")
+_WIN_DRIVE_ONLY_RE = re.compile(r"^[A-Za-z]:")
+_WIN_UNC_RE = re.compile(r"^\\\\[^\\/?%*:|\"<>]+[\\/][^\\/?%*:|\"<>]+")
+
+
+def _is_windows_style_path(raw: str) -> bool:
+    """Return True when *raw* looks like a Windows path."""
+    if not raw:
+        return False
+    if _WIN_DRIVE_RE.match(raw) or _WIN_UNC_RE.match(raw):
+        return True
+    if raw.startswith((".\\", "..\\", "\\")):
+        return True
+    if "\\" in raw:
+        return True
+    return False
+
+
+def _canonicalize_windows_path(raw: str) -> str:
+    """Normalize a Windows-style path to a comparable lowercase form."""
+    expanded = os.path.expanduser(raw) if raw.startswith("~") else raw
+    if not ntpath.isabs(expanded):
+        expanded = ntpath.join(str(_workspace_root()), expanded)
+    normalized = ntpath.normpath(expanded)
+    return normalized.replace("\\", "/").lower()
+
+
 def _normalize_path(raw_path: str) -> str:
     """Normalize *raw_path* to a canonical absolute path string."""
-    p = Path(raw_path).expanduser()
+    if not isinstance(raw_path, str):
+        return ""
+    raw = raw_path.strip()
+    if not raw:
+        return ""
+    if os.name == "nt" or _is_windows_style_path(raw):
+        return _canonicalize_windows_path(raw)
+    p = Path(raw).expanduser()
     if not p.is_absolute():
         p = _workspace_root() / p
     return str(p.resolve(strict=False))
@@ -124,45 +170,77 @@ def _looks_like_path_token(token: str) -> bool:
         return False
     if lowered.startswith(_MIME_PREFIXES):
         return False
-    if token.startswith(("~", "/", "./", "../")):
-        return True
-    if "/" in token:
-        return True
-    return False
+    posix_signal = token.startswith(("~", "/", "./", "../")) or "/" in token
+    windows_signal = any(
+        (
+            _WIN_DRIVE_RE.match(token),
+            _WIN_DRIVE_ONLY_RE.match(token),
+            _WIN_UNC_RE.match(token),
+            token.startswith((".\\", "..\\", "\\")),
+            "\\" in token,
+        ),
+    )
+    return bool(posix_signal or windows_signal)
+
+
+def _strip_surrounding_quotes(token: str) -> str:
+    """Strip one matching pair of ASCII quotes."""
+    if len(token) >= 2 and token[0] == token[-1] and token[0] in ("'", '"'):
+        return token[1:-1]
+    return token
+
+
+def _sanitize_path_candidate(raw: str) -> str:
+    """Normalize shell quoting artifacts around a path candidate."""
+    candidate = raw.strip()
+    if len(candidate) >= 4 and (
+        (candidate.startswith('\\"') and candidate.endswith('\\"'))
+        or (candidate.startswith("\\'") and candidate.endswith("\\'"))
+    ):
+        candidate = candidate[2:-2]
+    return _strip_surrounding_quotes(candidate)
+
+
+def _extract_attached_redirect_path(token: str) -> str | None:
+    """Return redirected path for forms like ``2>err.log``."""
+    for op in _REDIRECT_OPS_BY_LEN:
+        if token.startswith(op) and len(token) > len(op):
+            possible_path = token[len(op) :]
+            if _looks_like_path_token(possible_path):
+                return possible_path
+            return None
+    return None
 
 
 def _extract_paths_from_shell_command(command: str) -> list[str]:
     """Extract candidate file paths from a shell command string."""
+    use_posix = os.name != "nt"
     try:
-        tokens = shlex.split(command, posix=True)
+        tokens = shlex.split(command, posix=use_posix)
     except ValueError:
         # Best-effort fallback when quotes are malformed.
         tokens = command.split()
+    if not use_posix:
+        tokens = [_strip_surrounding_quotes(token) for token in tokens]
 
     candidates: list[str] = []
     i = 0
     while i < len(tokens):
-        token = tokens[i]
+        token = _sanitize_path_candidate(tokens[i])
 
         # Handle separated redirection operators: `cat a > out.txt`
         if token in _SHELL_REDIRECT_OPERATORS:
             if i + 1 < len(tokens):
-                next_token = tokens[i + 1]
+                next_token = _sanitize_path_candidate(tokens[i + 1])
                 if _looks_like_path_token(next_token):
                     candidates.append(next_token)
             i += 1
             continue
 
         # Handle attached redirection: `>out.txt`, `2>err.log`, `<in.txt`
-        attached = False
-        for op in _REDIRECT_OPS_BY_LEN:
-            if token.startswith(op) and len(token) > len(op):
-                possible_path = token[len(op) :]
-                if _looks_like_path_token(possible_path):
-                    candidates.append(possible_path)
-                attached = True
-                break
-        if attached:
+        attached_path = _extract_attached_redirect_path(token)
+        if attached_path is not None:
+            candidates.append(_sanitize_path_candidate(attached_path))
             i += 1
             continue
 
@@ -248,13 +326,23 @@ class FilePathToolGuardian(BaseToolGuardian):
 
     def _is_sensitive(self, abs_path: str) -> bool:
         """Return True when *abs_path* hits sensitive file/dir constraints."""
-        path_obj = Path(abs_path)
+        if not abs_path:
+            return False
         if abs_path in self._sensitive_files:
             return True
-        return any(
-            path_obj.is_relative_to(Path(dir_path))
-            for dir_path in self._sensitive_dirs
-        )
+        for dir_path in self._sensitive_dirs:
+            if not dir_path:
+                continue
+            trimmed = dir_path.rstrip("/\\")
+            if not trimmed:
+                continue
+            if abs_path == trimmed:
+                return True
+            if abs_path.startswith(trimmed + "/"):
+                return True
+            if abs_path.startswith(trimmed + "\\"):
+                return True
+        return False
 
     def _make_finding(
         self,
@@ -298,7 +386,8 @@ class FilePathToolGuardian(BaseToolGuardian):
         snippet: str | None = None,
     ) -> None:
         """Check a single string value against sensitive paths."""
-        abs_path = _normalize_path(raw_value)
+        normalized_input = _sanitize_path_candidate(raw_value)
+        abs_path = _normalize_path(normalized_input)
         if self._is_sensitive(abs_path):
             findings.append(
                 self._make_finding(

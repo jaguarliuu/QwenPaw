@@ -154,7 +154,7 @@ async def test_create_agent_appends_new_id_to_order(monkeypatch, tmp_path):
     monkeypatch.setattr(
         agents_router,
         "_initialize_agent_workspace",
-        lambda workspace_dir, skill_names=None, md_template_id=None: None,
+        lambda workspace_dir, skill_names=None, md_template_id=None, language=None: None,  # noqa: E501  # pylint: disable=line-too-long
     )
     monkeypatch.setattr(
         agents_router,
@@ -170,6 +170,57 @@ async def test_create_agent_appends_new_id_to_order(monkeypatch, tmp_path):
     )
 
     assert config.agents.agent_order == ["alpha", "default", "beta"]
+
+
+@pytest.mark.asyncio
+async def test_create_agent_uses_normalized_language(monkeypatch, tmp_path):
+    """New agents should persist a supported language for workspace templates."""
+    config = _build_config(
+        ["default"],
+        agent_order=["default"],
+    )
+    config.agents.language = "ru"
+    saved_agent_config: dict[str, AgentProfileConfig] = {}
+    init_calls: list[dict[str, object]] = []
+
+    monkeypatch.setattr(agents_router, "load_config", lambda: config)
+    monkeypatch.setattr(agents_router, "save_config", lambda updated: None)
+    monkeypatch.setattr(
+        agents_router,
+        "save_agent_config",
+        lambda agent_id, agent_config: saved_agent_config.setdefault(
+            agent_id,
+            agent_config,
+        ),
+    )
+    monkeypatch.setattr(
+        agents_router,
+        "_initialize_agent_workspace",
+        lambda workspace_dir, skill_names=None, md_template_id=None, language=None: init_calls.append(  # noqa: E501  # pylint: disable=line-too-long
+            {
+                "workspace_dir": workspace_dir,
+                "skill_names": skill_names,
+                "md_template_id": md_template_id,
+                "language": language,
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        agents_router,
+        "generate_short_agent_id",
+        lambda: "beta",
+    )
+
+    await agents_router.create_agent(
+        agents_router.CreateAgentRequest(
+            name="Beta",
+            workspace_dir=str(tmp_path / "beta"),
+            language="unsupported-lang",
+        ),
+    )
+
+    assert saved_agent_config["beta"].language == "en"
+    assert init_calls[0]["language"] == "en"
 
 
 @pytest.mark.asyncio
