@@ -195,7 +195,7 @@ function AgentStatsPage() {
           { key: "chats", label: t("agentStats.newSessions") },
           { key: "activeSessions", label: t("agentStats.activeSessions") },
         ],
-        ["#ff7f16", "#3b82f6"],
+        ["#009191", "#3b82f6"],
         isDarkMode,
         crossesYear,
       ),

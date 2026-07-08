@@ -1,9 +1,9 @@
 /** Predefined background colors for provider letter-avatar icons. */
 const PROVIDER_LETTER_COLORS: Record<string, string> = {
   modelscope: "#6236FF",
-  "aliyun-codingplan": "#FF6A00",
-  "aliyun-codingplan-intl": "#FF6A00",
-  "aliyun-tokenplan": "#FF6A00",
+  "aliyun-codingplan": "#007878",
+  "aliyun-codingplan-intl": "#007878",
+  "aliyun-tokenplan": "#007878",
   deepseek: "#4D6BFE",
   gemini: "#4285F4",
   "azure-openai": "#0078D4",
@@ -19,7 +19,7 @@ const PROVIDER_LETTER_COLORS: Record<string, string> = {
   lmstudio: "#6C5CE7",
   "siliconflow-cn": "#5B5FC7",
   "siliconflow-intl": "#5B5FC7",
-  "qwenpaw-local": "#FF7F16",
+  "qwenpaw-local": "#009191",
   "zhipu-cn": "#3366FF",
   "zhipu-intl": "#3366FF",
   "zhipu-cn-codingplan": "#3366FF",

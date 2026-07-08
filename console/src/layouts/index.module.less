@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #f9f8f4;
+  background: #f4f9f7;
 
   :global {
     .qwenpaw-space-item {
@@ -54,7 +54,7 @@
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
 .sider {
-  background: #f9f8f4 !important;
+  background: #f4f9f7 !important;
   overflow: auto;
   height: calc(100vh - 64px) !important;
   padding: 0 16px;
@@ -101,7 +101,7 @@
     z-index: 10;
     margin-bottom: 4px;
     // Opaque background so scrolled content is hidden behind
-    background: #f9f7f3;
+    background: #f2f8f5;
     border-radius: 12px 12px 0 0;
   }
 
@@ -317,8 +317,8 @@
   }
 
   .stickyChatButtonActive {
-    background: rgba(255, 127, 22, 0.5);
-    color: #ff7f16;
+    background: rgba(0, 145, 145, 0.5);
+    color: #009191;
   }
 
   :global {
@@ -351,8 +351,8 @@
 
     /* Selected item */
     .qwenpaw-menu-item-selected {
-      background: rgba(255, 127, 22, 0.5) !important;
-      color: #ff7f16 !important;
+      background: rgba(0, 145, 145, 0.5) !important;
+      color: #009191 !important;
     }
   }
 }
@@ -365,6 +365,30 @@
 .logoImg {
   height: 16px;
   width: auto;
+}
+
+.logoText {
+  font-size: 18px;
+  font-weight: 700;
+  color: #009191;
+  line-height: 1;
+  letter-spacing: 0.5px;
+  user-select: none;
+}
+
+.brandBox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.brandIcon {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
 .logoDivider {
@@ -402,7 +426,7 @@
 
 .collapseBtn {
   margin: auto;
-  color: #ff7f16;
+  color: #009191;
 }
 
 // ─── Auth actions (account + logout) ──────────────────────────────────────────
@@ -446,7 +470,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
-  background: #f9f8f4; // match sider background so scrolled content is hidden
+  background: #f4f9f7; // match sider background so scrolled content is hidden
 }
 
 .collapseToggle {
@@ -456,13 +480,13 @@
 
   &:hover {
     background: rgba(0, 0, 0, 0.06) !important;
-    color: #ff7f16 !important;
+    color: #009191 !important;
   }
 }
 
 .modeToggleActive {
-  color: #ff7f16 !important;
-  background: rgba(255, 127, 22, 0.08);
+  color: #009191 !important;
+  background: rgba(0, 145, 145, 0.08);
 }
 
 // ─── Simple mode: flat nav + session list ─────────────────────────────────────
@@ -477,15 +501,15 @@
   margin: 4px 0;
   border: none;
   border-radius: 8px;
-  background: rgba(255, 127, 22, 0.08);
-  color: #ff7f16;
+  background: rgba(0, 145, 145, 0.08);
+  color: #009191;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s;
 
   &:hover {
-    background: rgba(255, 127, 22, 0.14);
+    background: rgba(0, 145, 145, 0.14);
   }
 }
 
@@ -628,7 +652,7 @@
 }
 
 .simpleSessionActionBtnActive {
-  color: #ff7f16 !important;
+  color: #009191 !important;
 }
 
 .simpleSessionLoading {
@@ -780,11 +804,11 @@
   font-weight: 500;
   line-height: 64.78px;
   letter-spacing: normal;
-  color: #ff7f16;
+  color: #009191;
 }
 
 .updateModalTitle {
-  color: #ff7f16;
+  color: #009191;
 }
 
 .updateModalBody {
@@ -803,8 +827,8 @@
 }
 
 .updateViewReleasesBtn {
-  background: #ff7f16 !important;
-  border-color: #ff7f16 !important;
+  background: #009191 !important;
+  border-color: #009191 !important;
   color: #fff !important;
 
   &:hover {
@@ -814,8 +838,8 @@
 }
 
 .updateModalPrimaryBtn {
-  background: #ff7f16;
-  border-color: #ff7f16;
+  background: #009191;
+  border-color: #009191;
 }
 
 // ─── Code block inside update modal ──────────────────────────────────────────
@@ -911,11 +935,11 @@
   }
 
   .versionBadge {
-    color: #ff7f16;
+    color: #009191;
   }
 
   .collapseBtn {
-    color: #ff7f16;
+    color: #009191;
   }
 
   .authActions {
@@ -936,13 +960,13 @@
 
     &:hover {
       background: rgba(255, 255, 255, 0.08);
-      color: #ff7f16;
+      color: #009191;
     }
   }
 
   .modeToggleActive {
-    color: #ff7f16 !important;
-    background: rgba(255, 127, 22, 0.12);
+    color: #009191 !important;
+    background: rgba(0, 145, 145, 0.12);
   }
 
   .collapsedNavItem {
@@ -955,7 +979,7 @@
   }
 
   .collapsedNavItemActive {
-    background: rgba(255, 127, 22, 0.5) !important;
+    background: rgba(0, 145, 145, 0.5) !important;
     color: rgba(255, 255, 255, 0.88) !important;
   }
 
@@ -986,15 +1010,15 @@
   margin: 4px 0;
   border: none;
   border-radius: 8px;
-  background: rgba(255, 127, 22, 0.08);
-  color: #ff7f16;
+  background: rgba(0, 145, 145, 0.08);
+  color: #009191;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s;
 
   &:hover {
-    background: rgba(255, 127, 22, 0.14);
+    background: rgba(0, 145, 145, 0.14);
   }
 }
 
@@ -1137,7 +1161,7 @@
 }
 
 .simpleSessionActionBtnActive {
-  color: #ff7f16 !important;
+  color: #009191 !important;
 }
 
 .simpleSessionLoading {
@@ -1152,11 +1176,11 @@
 .siderSimple {
   :global(.dark-mode) & {
     .simpleNewChat {
-      background: rgba(255, 127, 22, 0.12);
-      color: #ff7f16;
+      background: rgba(0, 145, 145, 0.12);
+      color: #009191;
 
       &:hover {
-        background: rgba(255, 127, 22, 0.2);
+        background: rgba(0, 145, 145, 0.2);
       }
     }
 
@@ -1170,8 +1194,8 @@
     }
 
     .simpleNavItemActive {
-      background: rgba(255, 127, 22, 0.5);
-      color: #ff7f16;
+      background: rgba(0, 145, 145, 0.5);
+      color: #009191;
     }
 
     .simpleSessionHeader {

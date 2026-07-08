@@ -139,6 +139,9 @@ src/.hypothesis/
 /localfile/
 local-docs/
 
+# Local runtime working directory (contains credentials, chat history, agent state — MUST NOT be committed)
+working/
+
 # E2E test artifacts
 e2e/reports/
 e2e/data/

@@ -82,7 +82,7 @@ const ChatActionGroup: React.FC<ChatActionGroupProps> = ({
             icon={<SparkHistoryLine />}
             style={
               historyOpen
-                ? { color: "var(--color-primary, #ff9d4d)" }
+                ? { color: "var(--color-primary, #33a6a6)" }
                 : undefined
             }
             onClick={onToggleHistory}

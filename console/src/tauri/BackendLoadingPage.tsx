@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import styles from "./BackendLoadingPage.module.less";
 import { type BackendReadyStatus } from "./useBackendReadyPolling";
 
-const BRAND_COLOR = "#ff7f16";
+const BRAND_COLOR = "#009191";
 const ERROR_COLOR = "#ff4d4f";
 
 interface BackendLoadingPageProps {

@@ -20,10 +20,6 @@ import styles from "./index.module.less";
 import api from "../api";
 import { openExternalLink } from "../utils/openExternalLink";
 import {
-  GITHUB_URL,
-  getDocsUrl,
-  getFeatureDemosUrl,
-  getFaqUrl,
   getReleaseNotesUrl,
   PYPI_URL,
   ONE_HOUR_MS,
@@ -43,12 +39,7 @@ import {
   CopyOutlined,
   CheckOutlined,
   TagOutlined,
-  GithubOutlined,
-  FileTextOutlined,
-  ReadOutlined,
-  PlayCircleOutlined,
   InfoCircleOutlined,
-  DownOutlined,
   SyncOutlined,
   CheckCircleOutlined,
   ExclamationCircleOutlined,
@@ -83,7 +74,7 @@ function UpdateCodeBlock({ code }: { code: string }) {
 
 export default function Header() {
   const { t, i18n } = useTranslation();
-  const { isDark, setThemeMode } = useTheme();
+  const { setThemeMode } = useTheme();
   const desktop = useDesktopUpdate();
   const onDesktop = isDesktopApp();
   const [version, setVersion] = useState<string>("");
@@ -182,39 +173,6 @@ export default function Header() {
 
   const modalVersion = onDesktop ? desktop.version : latestVersion;
 
-  const resourcesMenuItems: MenuProps["items"] = [
-    {
-      key: "tutorial",
-      icon: <ReadOutlined />,
-      label: t("header.tutorial"),
-      onClick: () => handleNavClick(getDocsUrl(i18n.language)),
-    },
-    {
-      key: "featureDemos",
-      icon: <PlayCircleOutlined />,
-      label: t("header.featureDemos"),
-      onClick: () => handleNavClick(getFeatureDemosUrl(i18n.language)),
-    },
-    {
-      key: "changelog",
-      icon: <FileTextOutlined />,
-      label: t("header.changelog"),
-      onClick: () => handleNavClick(getReleaseNotesUrl(i18n.language)),
-    },
-    {
-      key: "faq",
-      icon: <InfoCircleOutlined />,
-      label: t("header.faq"),
-      onClick: () => handleNavClick(getFaqUrl(i18n.language)),
-    },
-    {
-      key: "github",
-      icon: <GithubOutlined />,
-      label: t("header.github"),
-      onClick: () => handleNavClick(GITHUB_URL),
-    },
-  ];
-
   const mobileMenuItems: MenuProps["items"] = [
     {
       key: "language",
@@ -249,8 +207,6 @@ export default function Header() {
         },
       ],
     },
-    { type: "divider" },
-    ...resourcesMenuItems,
   ];
 
   const handleOpenUpdateModal = () => {
@@ -344,17 +300,19 @@ export default function Header() {
             <img> below paints.
           */}
           <Slot name="header.logo" kind="replace">
-            <img
-              src={isDark ? "/logo-dark.svg" : "/logo-light.svg"}
-              alt="QwenPaw"
-              className={styles.logoImg}
-            />
+            <span className={styles.brandBox}>
+              <img
+                src="/qwenpaw.png"
+                alt="智维小C"
+                className={styles.brandIcon}
+              />
+            </span>
           </Slot>
           <div className={styles.logoDivider} />
           {version && (
             <Badge
               dot={!!hasUpdate && !isReady && !isBackgroundActive}
-              color="rgba(255, 157, 77, 1)"
+              color="rgba(51, 166, 166, 1)"
               offset={[4, 28]}
             >
               <span
@@ -379,7 +337,7 @@ export default function Header() {
                 style={{
                   marginLeft: 6,
                   fontSize: 14,
-                  color: "rgba(255, 157, 77, 1)",
+                  color: "rgba(51, 166, 166, 1)",
                 }}
               />
             </Tooltip>
@@ -430,23 +388,6 @@ export default function Header() {
         <Slot name="header.left" kind="fill" />
         <Space size="middle">
           <Slot name="header.right" kind="fill" />
-          {resourcesMenuItems.length > 0 && (
-            <Dropdown menu={{ items: resourcesMenuItems }}>
-              <Button type="text" className={styles.hideOnMobile}>
-                {t("header.resources")} <DownOutlined />
-              </Button>
-            </Dropdown>
-          )}
-          <Tooltip title={t("header.github")}>
-            <Button
-              type="text"
-              icon={<GithubOutlined />}
-              onClick={() => handleNavClick(GITHUB_URL)}
-              className={styles.hideOnMobile}
-            >
-              {t("header.github")}
-            </Button>
-          </Tooltip>
           <div className={styles.headerDivider} />
           <span className={styles.hideOnMobile}>
             <CodingModeToggle />
