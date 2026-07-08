@@ -178,7 +178,8 @@ python "${REPO_ROOT}/scripts/pack-tauri/generate_update_manifest.py" stage \
     --pattern '*.app.tar.gz' \
     --target "${UPDATER_TARGET}" \
     --output "${UPDATER_NAME}" \
-    --pubkey-config "${REPO_ROOT}/console/src-tauri/tauri.version.conf.json"
+    --pubkey-config "${REPO_ROOT}/console/src-tauri/tauri.version.conf.json" \
+    --optional
 
 echo ""
 echo "========================================="

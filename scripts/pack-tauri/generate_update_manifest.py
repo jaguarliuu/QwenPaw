@@ -61,9 +61,35 @@ def _find_source(bundle_dir: Path, pattern: str) -> Path:
 
 def cmd_stage(args: argparse.Namespace) -> None:
     bundle_dir = Path(args.bundle_dir)
-    source = _find_source(bundle_dir, args.pattern)
+    matches = sorted(bundle_dir.glob(args.pattern))
+    if not matches:
+        if args.optional:
+            print(
+                f"skip staging updater artifact: no source matching "
+                f"{args.pattern!r} under {bundle_dir} "
+                f"(--optional set; likely because TAURI_SIGNING_PRIVATE_KEY is "
+                f"not configured — install-only build, no auto-update)."
+            )
+            return
+        raise SystemExit(
+            f"no artifact matching {args.pattern!r} under {bundle_dir}",
+        )
+    source = matches[0]
     sig_source = source.with_suffix(source.suffix + ".sig")
     if not sig_source.is_file():
+        if args.optional:
+            print(
+                f"skip staging updater artifact: no signature at {sig_source} "
+                f"(--optional set; likely because TAURI_SIGNING_PRIVATE_KEY is "
+                f"not configured — install-only build, no auto-update)."
+            )
+            output = Path(args.output)
+            output.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source, output)
+            print(
+                f"copied {source.name} -> {output} without updater sidecar"
+            )
+            return
         raise SystemExit(f"no updater signature found at {sig_source}")
 
     output = Path(args.output)
@@ -253,6 +279,16 @@ def main() -> None:
         help=(
             "Optional tauri.conf.json path. When provided, fail if the staged "
             "signature key id does not match plugins.updater.pubkey."
+        ),
+    )
+    p_stage.add_argument(
+        "--optional",
+        action="store_true",
+        help=(
+            "Skip staging (and do not fail) when the .sig file is missing. "
+            "Intended for CI builds where TAURI_SIGNING_PRIVATE_KEY is not "
+            "configured — the installer is still produced, but the updater "
+            "sidecar is skipped so auto-update is disabled."
         ),
     )
     p_stage.set_defaults(func=cmd_stage)
