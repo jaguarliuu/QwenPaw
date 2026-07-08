@@ -80,6 +80,7 @@ export const BUILTIN_MENU: MenuItem[] = [
     icon: SparkWifiLine,
     route: "core.channels",
     order: 10,
+    visible: () => false,
   },
   {
     id: "core.sessions",
