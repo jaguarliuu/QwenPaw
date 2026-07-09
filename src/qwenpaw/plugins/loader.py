@@ -48,6 +48,105 @@ def _desktop_python() -> Optional[str]:
     return path if path and Path(path).is_file() else None
 
 
+# Intranet-friendly default PyPI mirror for plugin dependency installs.
+# Users on the public internet who want the real PyPI can override by
+# setting QWENPAW_PLUGIN_PIP_INDEX_URL to an empty string (unset), or to
+# any other URL. See _pip_index_args below.
+_DEFAULT_PLUGIN_PIP_INDEX_URL = "https://25.75.3.1/repository/pypi/simple"
+_DEFAULT_PLUGIN_PIP_TRUSTED_HOST = "25.75.3.1"
+
+
+def _env_or(default: str, *names: str) -> str:
+    """Return the first non-None env var among ``names``.
+
+    If an env var exists but is empty, it is treated as an explicit
+    opt-out and an empty string is returned (i.e. use pip's own default).
+    Only when *no* listed env var is set does ``default`` apply.
+    """
+    for name in names:
+        if name in os.environ:
+            return os.environ[name].strip()
+    return default
+
+
+def _pip_index_args() -> List[str]:
+    """Build extra pip CLI args controlling the package index / mirror.
+
+    Precedence (highest first):
+      1. ``QWENPAW_PLUGIN_PIP_NO_INDEX=1``  -> ``--no-index``
+      2. ``QWENPAW_PLUGIN_PIP_INDEX_URL``   -> ``--index-url <value>``
+         (empty value = don't inject; fall back to pip's own default,
+          which honours ~/.pip/pip.conf and PIP_INDEX_URL)
+      3. Built-in intranet default (see ``_DEFAULT_PLUGIN_PIP_INDEX_URL``)
+    Similarly for extra-index-url, trusted-host, find-links.
+    """
+    args: List[str] = []
+
+    if os.environ.get("QWENPAW_PLUGIN_PIP_NO_INDEX", "").strip() in ("1", "true", "True"):
+        args.append("--no-index")
+    else:
+        index_url = _env_or(
+            _DEFAULT_PLUGIN_PIP_INDEX_URL,
+            "QWENPAW_PLUGIN_PIP_INDEX_URL",
+        )
+        if index_url:
+            args.extend(["--index-url", index_url])
+
+        extra_index = _env_or("", "QWENPAW_PLUGIN_PIP_EXTRA_INDEX_URL")
+        if extra_index:
+            args.extend(["--extra-index-url", extra_index])
+
+    trusted = _env_or(
+        _DEFAULT_PLUGIN_PIP_TRUSTED_HOST,
+        "QWENPAW_PLUGIN_PIP_TRUSTED_HOST",
+    )
+    if trusted:
+        for host in trusted.split(","):
+            host = host.strip()
+            if host:
+                args.extend(["--trusted-host", host])
+
+    find_links = _env_or("", "QWENPAW_PLUGIN_PIP_FIND_LINKS")
+    if find_links:
+        for link in find_links.split(os.pathsep):
+            link = link.strip()
+            if link:
+                args.extend(["--find-links", link])
+
+    return args
+
+
+def _uv_index_args() -> List[str]:
+    """Same policy as _pip_index_args but for ``uv pip install``.
+
+    uv accepts --index-url / --extra-index-url / --find-links / --no-index
+    but has no --trusted-host flag (equivalent behaviour is off by default
+    for HTTPS with valid certs; use PIP_TRUSTED_HOST via env if needed).
+    """
+    args: List[str] = []
+    if os.environ.get("QWENPAW_PLUGIN_PIP_NO_INDEX", "").strip() in ("1", "true", "True"):
+        args.append("--no-index")
+    else:
+        index_url = _env_or(
+            _DEFAULT_PLUGIN_PIP_INDEX_URL,
+            "QWENPAW_PLUGIN_PIP_INDEX_URL",
+        )
+        if index_url:
+            args.extend(["--index-url", index_url])
+        extra_index = _env_or("", "QWENPAW_PLUGIN_PIP_EXTRA_INDEX_URL")
+        if extra_index:
+            args.extend(["--extra-index-url", extra_index])
+    find_links = _env_or("", "QWENPAW_PLUGIN_PIP_FIND_LINKS")
+    if find_links:
+        for link in find_links.split(os.pathsep):
+            link = link.strip()
+            if link:
+                args.extend(["--find-links", link])
+    return args
+
+
+
+
 def _plugin_runtime_dir() -> Path:
     """Root dir holding plugin runtime data (installed deps, locks)."""
     from ..constant import WORKING_DIR
@@ -762,6 +861,7 @@ class PluginLoader:
                     "install",
                     "--disable-pip-version-check",
                     "--no-input",
+                    *_pip_index_args(),
                     "-r",
                     req,
                 ],
@@ -812,6 +912,7 @@ class PluginLoader:
                     "install",
                     "--python",
                     sys.executable,
+                    *_uv_index_args(),
                     "-r",
                     req,
                 ],
@@ -865,6 +966,7 @@ class PluginLoader:
                     "install",
                     "--disable-pip-version-check",
                     "--no-input",
+                    *_pip_index_args(),
                     "--target",
                     target,
                     "-r",

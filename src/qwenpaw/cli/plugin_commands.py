@@ -21,6 +21,10 @@ import click
 from qwenpaw.plugins.validation import (
     validate_plugin_module as _validate_plugin_module,
 )
+from qwenpaw.plugins.loader import (
+    _pip_index_args as _plugin_pip_index_args,
+    _uv_index_args as _plugin_uv_index_args,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -242,7 +246,7 @@ def _install_requirements_cli(
     # ── Attempt 1: python -m pip ──────────────────────────────────────
     try:
         result = subprocess.run(  # pylint: disable=subprocess-run-check
-            [sys.executable, "-m", "pip", "install", "-r", req],
+            [sys.executable, "-m", "pip", "install", *_plugin_pip_index_args(), "-r", req],
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -280,7 +284,7 @@ def _install_requirements_cli(
     click.echo("pip not found, retrying with uv...")
     try:
         uv_result = subprocess.run(  # pylint: disable=subprocess-run-check
-            [uv, "pip", "install", "--python", sys.executable, "-r", req],
+            [uv, "pip", "install", "--python", sys.executable, *_plugin_uv_index_args(), "-r", req],
             capture_output=True,
             text=True,
             timeout=timeout,
