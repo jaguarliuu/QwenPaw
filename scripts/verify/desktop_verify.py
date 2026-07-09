@@ -144,9 +144,11 @@ def verify_frontend(base_url: str) -> None:
             f"Frontend root did not return HTML (first 200 chars): "
             f"{body[:200]}",
         )
-    if "qwenpaw" not in lower:
+    brand_markers = ("qwenpaw", "智维小c")
+    if not any(marker in lower for marker in brand_markers):
         raise RuntimeError(
-            "Frontend HTML does not mention QwenPaw — wrong bundle?",
+            "Frontend HTML does not mention any known brand marker "
+            f"({', '.join(brand_markers)}) — wrong bundle?",
         )
     print("PASS  GET / -> frontend HTML served")
 
