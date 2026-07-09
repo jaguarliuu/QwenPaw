@@ -15,11 +15,23 @@ import argparse
 import base64
 import json
 import shutil
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
 
 from packaging.version import InvalidVersion, Version
+
+# On Windows GH runners, sys.stdout defaults to cp1252 which cannot encode
+# many non-ASCII characters. Reconfigure to UTF-8 so log messages containing
+# em dashes, CJK, etc. never crash the build. Fallback: silently ignore.
+for _stream_name in ("stdout", "stderr"):
+    _stream = getattr(sys, _stream_name, None)
+    if _stream is not None and hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError, OSError):
+            pass
 
 
 def to_semver(version: str) -> str:
@@ -68,7 +80,7 @@ def cmd_stage(args: argparse.Namespace) -> None:
                 f"skip staging updater artifact: no source matching "
                 f"{args.pattern!r} under {bundle_dir} "
                 f"(--optional set; likely because TAURI_SIGNING_PRIVATE_KEY is "
-                f"not configured — install-only build, no auto-update)."
+                f"not configured -- install-only build, no auto-update)."
             )
             return
         raise SystemExit(
@@ -81,7 +93,7 @@ def cmd_stage(args: argparse.Namespace) -> None:
             print(
                 f"skip staging updater artifact: no signature at {sig_source} "
                 f"(--optional set; likely because TAURI_SIGNING_PRIVATE_KEY is "
-                f"not configured — install-only build, no auto-update)."
+                f"not configured -- install-only build, no auto-update)."
             )
             output = Path(args.output)
             output.parent.mkdir(parents=True, exist_ok=True)
@@ -287,7 +299,7 @@ def main() -> None:
         help=(
             "Skip staging (and do not fail) when the .sig file is missing. "
             "Intended for CI builds where TAURI_SIGNING_PRIVATE_KEY is not "
-            "configured — the installer is still produced, but the updater "
+            "configured -- the installer is still produced, but the updater "
             "sidecar is skipped so auto-update is disabled."
         ),
     )
