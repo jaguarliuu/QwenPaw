@@ -13,14 +13,14 @@ if not defined QWENPAW_DEBUG_DIR if defined COPAW_WORKING_DIR set "QWENPAW_DEBUG
 if not defined QWENPAW_DEBUG_DIR if exist "%USERPROFILE%\.copaw" set "QWENPAW_DEBUG_DIR=%USERPROFILE%\.copaw"
 if not defined QWENPAW_DEBUG_DIR set "QWENPAW_DEBUG_DIR=%USERPROFILE%\.qwenpaw"
 set "QWENPAW_BACKEND_LOGS=%QWENPAW_DEBUG_DIR%\desktop.log;%QWENPAW_DEBUG_DIR%\qwenpaw.log"
-set "QWENPAW_SHELL_LOGS=%LOCALAPPDATA%\io.agentscope.qwenpaw.desktop\logs\qwenpaw-desktop.log;%LOCALAPPDATA%\com.qwenpaw.desktop\logs\qwenpaw-desktop.log"
+set "QWENPAW_SHELL_LOGS=%LOCALAPPDATA%\io.agentscope.tinyc.desktop\logs\tinyc-desktop.log;%LOCALAPPDATA%\io.agentscope.qwenpaw.desktop\logs\qwenpaw-desktop.log;%LOCALAPPDATA%\com.qwenpaw.desktop\logs\qwenpaw-desktop.log"
 
 echo ====================================
-echo QwenPaw Desktop - Debug Mode
+echo 智维小C Desktop - Debug Mode
 echo ====================================
 echo Log level: %QWENPAW_LOG_LEVEL%
 echo Working directory: %QWENPAW_DEBUG_DIR%
 echo Press Ctrl+C to stop watching logs.
 echo.
 
-powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0qwenpaw-desktop-debug.ps1"
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0tinyc-desktop-debug.ps1"

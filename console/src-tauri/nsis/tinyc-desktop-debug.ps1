@@ -4,9 +4,9 @@ $utf8 = [System.Text.UTF8Encoding]::new($false)
 [Console]::OutputEncoding = $utf8
 $OutputEncoding = $utf8
 
-$desktopExe = Join-Path $PSScriptRoot "qwenpaw-desktop.exe"
-$stdoutLog = Join-Path $env:TEMP "qwenpaw-desktop-debug.stdout.log"
-$stderrLog = Join-Path $env:TEMP "qwenpaw-desktop-debug.stderr.log"
+$desktopExe = Join-Path $PSScriptRoot "tinyc-desktop.exe"
+$stdoutLog = Join-Path $env:TEMP "tinyc-desktop-debug.stdout.log"
+$stderrLog = Join-Path $env:TEMP "tinyc-desktop-debug.stderr.log"
 Remove-Item -LiteralPath $stdoutLog, $stderrLog -ErrorAction SilentlyContinue
 
 function Show-DesktopOutput {
@@ -41,11 +41,11 @@ function Open-Log($label, $paths) {
   }
 }
 
-$desktop = Get-Process -Name "qwenpaw-desktop" -ErrorAction SilentlyContinue |
+$desktop = Get-Process -Name "tinyc-desktop" -ErrorAction SilentlyContinue |
   Where-Object { $_.Path -eq $desktopExe } |
   Select-Object -First 1
 if ($desktop) {
-  Write-Host "Existing QwenPaw Desktop process detected; quit it from the tray before reproducing startup issues."
+  Write-Host "Existing 智维小C Desktop process detected; quit it from the tray before reproducing startup issues."
   $desktop = $null
 } else {
   $desktop = Start-Process -FilePath $desktopExe `
@@ -80,7 +80,7 @@ try {
     if ($desktop) {
       $desktop.Refresh()
       if ($desktop.HasExited) {
-        Write-Host "QwenPaw Desktop exited with code $($desktop.ExitCode)."
+        Write-Host "智维小C Desktop exited with code $($desktop.ExitCode)."
         Show-DesktopOutput
         Read-Host "Press Enter to exit"
         break

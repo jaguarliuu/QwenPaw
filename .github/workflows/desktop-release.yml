@@ -328,7 +328,7 @@ jobs:
             --bundle-dir console/src-tauri/target/release/bundle/nsis `
             --pattern '*-setup.exe' `
             --target windows-x86_64 `
-            --output "dist/QwenPaw-Tauri-${{ steps.version.outputs.version }}-Windows-setup.exe" `
+            --output "dist/TinyC-Tauri-${{ steps.version.outputs.version }}-Windows-setup.exe" `
             --pubkey-config console/src-tauri/tauri.version.conf.json `
             --optional
 
@@ -344,12 +344,12 @@ jobs:
         run: |
           $ErrorActionPreference = "Continue"
           # Kill the Tauri shell and its sidecar subprocess by name.
-          Get-Process -Name "qwenpaw-desktop" -ErrorAction SilentlyContinue |
+          Get-Process -Name "tinyc-desktop" -ErrorAction SilentlyContinue |
             Stop-Process -Force -ErrorAction SilentlyContinue
           Get-Process -Name "qwenpaw-backend" -ErrorAction SilentlyContinue |
             Stop-Process -Force -ErrorAction SilentlyContinue
           Start-Sleep -Seconds 2
-          Get-Process -Name "qwenpaw-desktop" -ErrorAction SilentlyContinue |
+          Get-Process -Name "tinyc-desktop" -ErrorAction SilentlyContinue |
             Stop-Process -Force -ErrorAction SilentlyContinue
           Get-Process -Name "qwenpaw-backend" -ErrorAction SilentlyContinue |
             Stop-Process -Force -ErrorAction SilentlyContinue
@@ -361,8 +361,11 @@ jobs:
         with:
           name: desktop-verify-logs-tauri-windows-${{ steps.version.outputs.version }}
           path: |
+            ${{ runner.temp }}/tinyc-desktop-stdout.log
+            ${{ runner.temp }}/tinyc-desktop-stderr.log
             ${{ runner.temp }}/qwenpaw-desktop-stdout.log
             ${{ runner.temp }}/qwenpaw-desktop-stderr.log
+            ~/AppData/Local/io.agentscope.tinyc.desktop/logs/
             ~/AppData/Local/com.qwenpaw.desktop/logs/
           if-no-files-found: ignore
           retention-days: 7
@@ -379,8 +382,8 @@ jobs:
       - name: Upload Tauri Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: QwenPaw-Desktop-Tauri-Windows-${{ steps.version.outputs.version }}
-          path: dist/QwenPaw-Tauri-*-Windows-setup.exe
+          name: TinyC-Desktop-Tauri-Windows-${{ steps.version.outputs.version }}
+          path: dist/TinyC-Tauri-*-Windows-setup.exe
 
       - name: Upload Tauri Windows updater metadata
         if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.upload_to_oss == 'true')
@@ -388,7 +391,7 @@ jobs:
         with:
           name: tauri-updater-meta-windows
           path: |
-            dist/QwenPaw-Tauri-*-Windows-setup.exe.sig
+            dist/TinyC-Tauri-*-Windows-setup.exe.sig
             dist/tauri-windows-x86_64-updater.json
 
   build-tauri-macos:
@@ -463,9 +466,11 @@ jobs:
         if: always()
         run: |
           # Kill the Tauri shell and its sidecar subprocess.
+          pkill -f "智维小C Desktop" 2>/dev/null || true
           pkill -f "QwenPaw Desktop" 2>/dev/null || true
           pkill -f "qwenpaw-backend" 2>/dev/null || true
           sleep 2
+          pkill -9 -f "智维小C Desktop" 2>/dev/null || true
           pkill -9 -f "QwenPaw Desktop" 2>/dev/null || true
           pkill -9 -f "qwenpaw-backend" 2>/dev/null || true
           # Best-effort: kill anything sitting on the detected port.
@@ -481,8 +486,11 @@ jobs:
         with:
           name: desktop-verify-logs-tauri-macos-${{ steps.version.outputs.version }}
           path: |
+            ${{ runner.temp }}/tinyc-desktop-stdout.log
+            ${{ runner.temp }}/tinyc-desktop-stderr.log
             ${{ runner.temp }}/qwenpaw-desktop-stdout.log
             ${{ runner.temp }}/qwenpaw-desktop-stderr.log
+            ~/Library/Logs/io.agentscope.tinyc.desktop/
             ~/Library/Logs/com.qwenpaw.desktop/
           if-no-files-found: ignore
           retention-days: 7
@@ -499,8 +507,8 @@ jobs:
       - name: Upload Tauri macOS artifact
         uses: actions/upload-artifact@v4
         with:
-          name: QwenPaw-Desktop-Tauri-macOS-${{ steps.version.outputs.version }}
-          path: dist/QwenPaw-Tauri-*-macOS.zip
+          name: TinyC-Desktop-Tauri-macOS-${{ steps.version.outputs.version }}
+          path: dist/TinyC-Tauri-*-macOS.zip
 
       - name: Upload Tauri macOS updater metadata
         if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.upload_to_oss == 'true')
@@ -508,8 +516,8 @@ jobs:
         with:
           name: tauri-updater-meta-macos
           path: |
-            dist/QwenPaw-Tauri-*-macOS.app.tar.gz
-            dist/QwenPaw-Tauri-*-macOS.app.tar.gz.sig
+            dist/TinyC-Tauri-*-macOS.app.tar.gz
+            dist/TinyC-Tauri-*-macOS.app.tar.gz.sig
             dist/tauri-darwin-*-updater.json
 
   upload-release:
@@ -541,13 +549,13 @@ jobs:
         run: |
           mv QwenPaw-Desktop-Windows-*/QwenPaw-Setup-*.exe . 2>/dev/null || true
           mv QwenPaw-Desktop-macOS-*/QwenPaw-*.zip . 2>/dev/null || true
-          mv QwenPaw-Desktop-Tauri-Windows-*/QwenPaw-Tauri-*-Windows-setup.exe . 2>/dev/null || true
-          mv QwenPaw-Desktop-Tauri-macOS-*/QwenPaw-Tauri-*-macOS.zip . 2>/dev/null || true
+          mv TinyC-Desktop-Tauri-Windows-*/TinyC-Tauri-*-Windows-setup.exe . 2>/dev/null || true
+          mv TinyC-Desktop-Tauri-macOS-*/TinyC-Tauri-*-macOS.zip . 2>/dev/null || true
           # Updater metadata from internal artifacts
-          mv tauri-updater-meta-windows/QwenPaw-Tauri-*-Windows-setup.exe.sig . 2>/dev/null || true
+          mv tauri-updater-meta-windows/TinyC-Tauri-*-Windows-setup.exe.sig . 2>/dev/null || true
           mv tauri-updater-meta-windows/tauri-windows-*-updater.json . 2>/dev/null || true
-          mv tauri-updater-meta-macos/QwenPaw-Tauri-*-macOS.app.tar.gz . 2>/dev/null || true
-          mv tauri-updater-meta-macos/QwenPaw-Tauri-*-macOS.app.tar.gz.sig . 2>/dev/null || true
+          mv tauri-updater-meta-macos/TinyC-Tauri-*-macOS.app.tar.gz . 2>/dev/null || true
+          mv tauri-updater-meta-macos/TinyC-Tauri-*-macOS.app.tar.gz.sig . 2>/dev/null || true
           mv tauri-updater-meta-macos/tauri-darwin-*-updater.json . 2>/dev/null || true
 
       - name: Generate Tauri updater manifest
@@ -559,13 +567,13 @@ jobs:
           for f in tauri-windows-*-updater.json tauri-darwin-*-updater.json; do
             [ -f "$f" ] && metadata_args+=(--metadata "$f")
           done
-          NOTES="${RELEASE_BODY:-QwenPaw Desktop ${{ steps.version.outputs.version }}}"
+          NOTES="${RELEASE_BODY:-智维小C Desktop ${{ steps.version.outputs.version }}}"
           python scripts/pack-tauri/generate_update_manifest.py manifest \
             --version "${{ steps.version.outputs.version }}" \
             --base-url "https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}" \
             "${metadata_args[@]}" \
             --notes "$NOTES" \
-            --output qwenpaw-tauri-latest.json
+            --output tinyc-tauri-latest.json
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
@@ -573,10 +581,10 @@ jobs:
           files: |
             QwenPaw-Setup-*.exe
             QwenPaw-[0-9]*-macOS.zip
-            QwenPaw-Tauri-*-Windows-setup.exe
-            QwenPaw-Tauri-*-macOS.zip
-            QwenPaw-Tauri-*-macOS.app.tar.gz
-            qwenpaw-tauri-latest.json
+            TinyC-Tauri-*-Windows-setup.exe
+            TinyC-Tauri-*-macOS.zip
+            TinyC-Tauri-*-macOS.app.tar.gz
+            tinyc-tauri-latest.json
           fail-on-unmatched-files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -723,7 +731,7 @@ jobs:
           echo "✓ macOS artifacts uploaded"
 
       - name: Process and upload Tauri artifacts
-        if: hashFiles('QwenPaw-Desktop-Tauri-*/*') != ''
+        if: hashFiles('TinyC-Desktop-Tauri-*/*') != ''
         run: |
           VERSION="${{ steps.version.outputs.version }}"
 
@@ -769,19 +777,19 @@ jobs:
           }
 
           upload_tauri_artifact \
-            "QwenPaw-Desktop-Tauri-Windows-*" \
-            "QwenPaw-Tauri-*-Windows-setup.exe" \
+            "TinyC-Desktop-Tauri-Windows-*" \
+            "TinyC-Tauri-*-Windows-setup.exe" \
             "win-tauri" \
-            "QwenPaw-Tauri-${VERSION}-Windows-setup.exe" \
-            "QwenPaw-Tauri-latest-Windows-setup.exe" \
+            "TinyC-Tauri-${VERSION}-Windows-setup.exe" \
+            "TinyC-Tauri-latest-Windows-setup.exe" \
             "win-tauri-metadata.json"
 
           upload_tauri_artifact \
-            "QwenPaw-Desktop-Tauri-macOS-*" \
-            "QwenPaw-Tauri-*-macOS.zip" \
+            "TinyC-Desktop-Tauri-macOS-*" \
+            "TinyC-Tauri-*-macOS.zip" \
             "mac-tauri" \
-            "QwenPaw-Tauri-${VERSION}-macOS.zip" \
-            "QwenPaw-Tauri-latest-macOS.zip" \
+            "TinyC-Tauri-${VERSION}-macOS.zip" \
+            "TinyC-Tauri-latest-macOS.zip" \
             "mac-tauri-metadata.json"
 
       - name: Upload Tauri macOS updater archive to OSS
@@ -789,13 +797,13 @@ jobs:
         if: hashFiles('tauri-updater-meta-macos/*.app.tar.gz') != ''
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          APP_TAR_GZ=$(find tauri-updater-meta-macos -name "QwenPaw-Tauri-*-macOS.app.tar.gz" | head -1)
+          APP_TAR_GZ=$(find tauri-updater-meta-macos -name "TinyC-Tauri-*-macOS.app.tar.gz" | head -1)
           if [ -z "$APP_TAR_GZ" ]; then
             echo "No macOS .app.tar.gz found, skipping"
             exit 0
           fi
           ossutil cp "$APP_TAR_GZ" \
-            "oss://${OSS_BUCKET}/files/apps/desktop/mac-tauri/QwenPaw-Tauri-${VERSION}-macOS.app.tar.gz" \
+            "oss://${OSS_BUCKET}/files/apps/desktop/mac-tauri/TinyC-Tauri-${VERSION}-macOS.app.tar.gz" \
             --acl public-read \
             --force
 
@@ -805,7 +813,7 @@ jobs:
           # The manifest generator expects the artifact binary alongside the
           # sidecar JSON.  After artifact splitting the exe lives in a separate
           # artifact directory, so we symlink it into the meta directory.
-          for f in QwenPaw-Desktop-Tauri-Windows-*/QwenPaw-Tauri-*-Windows-setup.exe; do
+          for f in TinyC-Desktop-Tauri-Windows-*/TinyC-Tauri-*-Windows-setup.exe; do
             [ -f "$f" ] && ln -sf "../$f" tauri-updater-meta-windows/ 2>/dev/null || true
           done
 
@@ -829,7 +837,7 @@ jobs:
             echo "No Tauri updater sidecars found, skipping OSS manifest"
             exit 0
           fi
-          NOTES="${RELEASE_BODY:-QwenPaw Desktop ${VERSION}}"
+          NOTES="${RELEASE_BODY:-智维小C Desktop ${VERSION}}"
           python scripts/pack-tauri/generate_update_manifest.py manifest \
             --version "$VERSION" \
             --base-url "$OSS_BASE" \
@@ -837,9 +845,9 @@ jobs:
             --target-base "darwin-aarch64=${OSS_BASE}/mac-tauri" \
             "${metadata_args[@]}" \
             --notes "$NOTES" \
-            --output qwenpaw-tauri-latest-oss.json
-          ossutil cp qwenpaw-tauri-latest-oss.json \
-            "oss://${OSS_BUCKET}/metadata/qwenpaw-tauri-latest.json" \
+            --output tinyc-tauri-latest-oss.json
+          ossutil cp tinyc-tauri-latest-oss.json \
+            "oss://${OSS_BUCKET}/metadata/tinyc-tauri-latest.json" \
             --acl public-read \
             --force
 
@@ -902,13 +910,13 @@ jobs:
 
           merge_tauri_metadata \
             "win-tauri-metadata.json" \
-            "QwenPaw-Desktop-Tauri-Windows-*" \
-            "QwenPaw-Tauri-*-Windows-setup.exe" \
+            "TinyC-Desktop-Tauri-Windows-*" \
+            "TinyC-Tauri-*-Windows-setup.exe" \
             "win-tauri"
           merge_tauri_metadata \
             "mac-tauri-metadata.json" \
-            "QwenPaw-Desktop-Tauri-macOS-*" \
-            "QwenPaw-Tauri-*-macOS.zip" \
+            "TinyC-Desktop-Tauri-macOS-*" \
+            "TinyC-Tauri-*-macOS.zip" \
             "mac-tauri"
 
           # Upload updated desktop/index.json
