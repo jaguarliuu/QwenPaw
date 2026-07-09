@@ -362,7 +362,7 @@ class MatrixConfig(BaseChannelConfig):
     vision_enabled: bool = True
     history_limit: int = 50
     password: str = ""
-    device_name: str = "qwenpaw-worker"
+    device_name: str = "tinyc-worker"
     # matrix-nio sync long-poll timeout (ms); typical 30s
     sync_timeout_ms: int = Field(default=30000, ge=5000, le=300000)
     # When True, prepend HTML pill to formatted_body for outbound mentions.
@@ -384,7 +384,7 @@ class VoiceChannelConfig(BaseChannelConfig):
     tts_voice: str = "en-US-Journey-D"
     stt_provider: str = "deepgram"
     language: str = "en-US"
-    welcome_greeting: str = "Hi! This is QwenPaw. How can I help you?"
+    welcome_greeting: str = "Hi! This is 智维小C. How can I help you?"
 
 
 class SIPChannelConfig(BaseChannelConfig):
@@ -404,7 +404,7 @@ class SIPChannelConfig(BaseChannelConfig):
     tts_voice: str = ""
     stt_provider: str = "aliyun"
     language: str = "zh-CN"
-    welcome_greeting: str = "你好，我是QwenPaw"
+    welcome_greeting: str = "你好，我是智维小C"
     call_timeout: float = 120.0
     livekit_url: str = ""
     livekit_api_key: str = ""
