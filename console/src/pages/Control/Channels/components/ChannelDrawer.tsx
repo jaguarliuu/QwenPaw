@@ -93,10 +93,51 @@ const TWILIO_CONSOLE_URL = "https://console.twilio.com";
 const BASE_FIELDS = [
   "enabled",
   "bot_prefix",
-  "filter_tool_messages",
-  "filter_thinking",
+  "show_tool_calls",
+  "show_tool_results",
+  "tool_call_max_length",
+  "tool_result_max_length",
+  "show_thinking",
   "isBuiltin",
 ];
+
+// Resolve a plugin-provided localized text (a plain string or a
+// locale->string dict) against the given UI language, with graceful
+// fallback so a missing locale never renders blank. Long codes ("zh-CN")
+// and short codes ("zh") are matched on either side via prefix matching.
+// Priority: exact locale -> short code -> prefix match (short<->long) ->
+// English -> Chinese -> first non-empty value.
+function resolveLocalized(value: unknown, lang: string): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  if (typeof value !== "object") return String(value);
+
+  const dict = value as Record<string, string>;
+  const locale = lang || "en";
+  const short = locale.split("-")[0].toLowerCase();
+  // Prefix match so UI short code "zh" hits dict long key "zh-CN"
+  // (and vice versa), regardless of which style the plugin used.
+  const prefixKey = Object.keys(dict).find(
+    (k) => k.split("-")[0].toLowerCase() === short && !!dict[k],
+  );
+
+  const exactMatch = dict[locale];
+  const shortMatch = dict[short];
+  const prefixMatch = prefixKey ? dict[prefixKey] : undefined;
+  const englishFallback = dict["en-US"] || dict["en"];
+  const chineseFallback = dict["zh-CN"] || dict["zh"];
+  const anyNonEmpty = Object.values(dict).find((v) => !!v);
+
+  return (
+    exactMatch ||
+    shortMatch ||
+    prefixMatch ||
+    englishFallback ||
+    chineseFallback ||
+    anyNonEmpty ||
+    ""
+  );
+}
 
 interface ChannelDrawerProps {
   open: boolean;
@@ -135,6 +176,8 @@ export function ChannelDrawer({
   const matrixAuthMethod = Form.useWatch("auth_method", form);
   const isMatrixPasswordAuth = matrixAuthMethod === "password";
   const feishuDomain = (Form.useWatch("domain", form) as string) || "feishu";
+  const showToolCalls = Form.useWatch("show_tool_calls", form) ?? true;
+  const showToolResults = Form.useWatch("show_tool_results", form) ?? true;
 
   // Parent calls form.setFieldsValue() before the Form mounts, which wins over
   // initialValues. Re-apply auth_method after open so the dropdown is correct.
@@ -1339,8 +1382,15 @@ export function ChannelDrawer({
             </div>
           )}
           {channelSchema.config_fields.map((field) => {
+            const fieldLabel = resolveLocalized(field.label, i18n.language);
+            const fieldHelp =
+              resolveLocalized(field.help, i18n.language) || undefined;
+            const fieldPlaceholder = resolveLocalized(
+              field.placeholder,
+              i18n.language,
+            );
             const rules = field.required
-              ? [{ required: true, message: `Please enter ${field.label}` }]
+              ? [{ required: true, message: `Please enter ${fieldLabel}` }]
               : undefined;
 
             switch (field.type) {
@@ -1349,12 +1399,12 @@ export function ChannelDrawer({
                   <Form.Item
                     key={field.name}
                     name={field.name}
-                    label={field.label}
+                    label={fieldLabel}
                     rules={rules}
-                    tooltip={field.help}
+                    tooltip={fieldHelp}
                     initialValue={field.default}
                   >
-                    <Input.Password placeholder={field.placeholder} />
+                    <Input.Password placeholder={fieldPlaceholder} />
                   </Form.Item>
                 );
               case "number":
@@ -1362,14 +1412,14 @@ export function ChannelDrawer({
                   <Form.Item
                     key={field.name}
                     name={field.name}
-                    label={field.label}
+                    label={fieldLabel}
                     rules={rules}
-                    tooltip={field.help}
+                    tooltip={fieldHelp}
                     initialValue={field.default}
                   >
                     <InputNumber
                       style={{ width: "100%" }}
-                      placeholder={field.placeholder}
+                      placeholder={fieldPlaceholder}
                     />
                   </Form.Item>
                 );
@@ -1378,9 +1428,9 @@ export function ChannelDrawer({
                   <Form.Item
                     key={field.name}
                     name={field.name}
-                    label={field.label}
+                    label={fieldLabel}
                     valuePropName="checked"
-                    tooltip={field.help}
+                    tooltip={fieldHelp}
                     initialValue={field.default}
                   >
                     <Switch />
@@ -1391,13 +1441,13 @@ export function ChannelDrawer({
                   <Form.Item
                     key={field.name}
                     name={field.name}
-                    label={field.label}
+                    label={fieldLabel}
                     rules={rules}
-                    tooltip={field.help}
+                    tooltip={fieldHelp}
                     initialValue={field.default}
                   >
                     <Select
-                      placeholder={field.placeholder}
+                      placeholder={fieldPlaceholder}
                       options={(field.options || []).map((opt) => ({
                         label: opt,
                         value: opt,
@@ -1410,12 +1460,12 @@ export function ChannelDrawer({
                   <Form.Item
                     key={field.name}
                     name={field.name}
-                    label={field.label}
+                    label={fieldLabel}
                     rules={rules}
-                    tooltip={field.help}
+                    tooltip={fieldHelp}
                     initialValue={field.default}
                   >
-                    <Input placeholder={field.placeholder} />
+                    <Input placeholder={fieldPlaceholder} />
                   </Form.Item>
                 );
             }
@@ -1487,6 +1537,28 @@ export function ChannelDrawer({
             {label} Doc
           </Button>
         )}
+      {/* Plugin channels: doc button driven by schema.doc_url.
+          Guarded so built-in channels (present in the maps above) never
+          reach this branch, keeping their behavior byte-for-byte. */}
+      {(() => {
+        if (!activeKey) return null;
+        if (CHANNEL_DOC_EN_URLS[activeKey] || CHANNEL_DOC_ZH_URLS[activeKey])
+          return null;
+        const url = resolveLocalized(channelSchema?.doc_url, i18n.language);
+        if (!/^https?:\/\//i.test(url)) return null;
+        return (
+          <Button
+            type="text"
+            size="small"
+            icon={<LinkOutlined />}
+            onClick={() => openExternalLink(url)}
+            className={styles.dingtalkDocBtn}
+            style={{ color: "#FF7F16" }}
+          >
+            {label} Doc
+          </Button>
+        );
+      })()}
       {activeKey === "voice" && (
         <Button
           type="text"
@@ -1556,26 +1628,52 @@ export function ChannelDrawer({
             </Form.Item>
           )}
 
-          {activeKey !== "console" && (
-            <>
+          <>
+            <Form.Item
+              name="show_tool_calls"
+              label={t("channels.showToolCalls")}
+              valuePropName="checked"
+              tooltip={t("channels.showToolCallsTooltip")}
+            >
+              <Switch />
+            </Form.Item>
+            {showToolCalls && (
               <Form.Item
-                name="filter_tool_messages"
-                label={t("channels.filterToolMessages")}
+                name="tool_call_max_length"
+                label={t("channels.toolCallMaxLength")}
+                tooltip={t("channels.toolMaxLengthTooltip")}
+              >
+                <InputNumber min={0} style={{ width: "100%" }} />
+              </Form.Item>
+            )}
+            <Form.Item
+              name="show_tool_results"
+              label={t("channels.showToolResults")}
+              valuePropName="checked"
+              tooltip={t("channels.showToolResultsTooltip")}
+            >
+              <Switch />
+            </Form.Item>
+            {showToolResults && (
+              <Form.Item
+                name="tool_result_max_length"
+                label={t("channels.toolResultMaxLength")}
+                tooltip={t("channels.toolMaxLengthTooltip")}
+              >
+                <InputNumber min={0} style={{ width: "100%" }} />
+              </Form.Item>
+            )}
+            {activeKey !== "console" && (
+              <Form.Item
+                name="show_thinking"
+                label={t("channels.showThinking")}
                 valuePropName="checked"
-                tooltip={t("channels.filterToolMessagesTooltip")}
+                tooltip={t("channels.showThinkingTooltip")}
               >
                 <Switch />
               </Form.Item>
-              <Form.Item
-                name="filter_thinking"
-                label={t("channels.filterThinking")}
-                valuePropName="checked"
-                tooltip={t("channels.filterThinkingTooltip")}
-              >
-                <Switch />
-              </Form.Item>
-            </>
-          )}
+            )}
+          </>
 
           {(activeKey === "wecom" ||
             activeKey === "telegram" ||

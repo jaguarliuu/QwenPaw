@@ -9,6 +9,7 @@ import { MarketPluginList } from "./MarketPluginList";
 const hoisted = vi.hoisted(() => ({
   plugins: [] as MarketPluginEntry[],
   handleInstall: vi.fn(),
+  handleSortChange: vi.fn(),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -27,18 +28,23 @@ vi.mock("../hooks/useMarketPlugins", () => ({
     page: 1,
     pageSize: 20,
     category: undefined,
+    sortBy: "downloads",
     installingId: null,
     qwenpawVersion: "2.0.0",
     isCompatible: () => true,
     handleSearch: vi.fn(),
     handleCategoryChange: vi.fn(),
+    handleSortChange: hoisted.handleSortChange,
     handlePageChange: vi.fn(),
     handleRefresh: vi.fn(),
     handleInstall: hoisted.handleInstall,
   }),
 }));
 
-function makePlugin(detailsUrl: string): MarketPluginEntry {
+function makePlugin(
+  detailsUrl: string,
+  qwenpawCompatLabels?: string[],
+): MarketPluginEntry {
   return {
     id: "@agentscope/demo",
     display_name: "Demo plugin",
@@ -49,6 +55,7 @@ function makePlugin(detailsUrl: string): MarketPluginEntry {
     downloads: 10,
     view_count: 20,
     details_url: detailsUrl,
+    qwenpaw_compat_labels: qwenpawCompatLabels,
     locales: {
       en: {
         description: "Demo description",
@@ -64,6 +71,7 @@ describe("MarketPluginList", () => {
   beforeEach(() => {
     hoisted.plugins.length = 0;
     hoisted.handleInstall.mockReset();
+    hoisted.handleSortChange.mockReset();
     invoke.mockReset();
     invoke.mockResolvedValue(undefined);
     isTauri.mockReturnValue(false);
@@ -96,5 +104,31 @@ describe("MarketPluginList", () => {
 
     expect(windowOpen).not.toHaveBeenCalled();
     expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("shows the QwenPaw compatibility versions returned by the market", () => {
+    hoisted.plugins.push(
+      makePlugin("https://platform.agentscope.io/plugins/agentscope/demo", [
+        "1.x",
+        "2.x",
+      ]),
+    );
+
+    render(<MarketPluginList onInstalled={vi.fn()} />);
+
+    expect(screen.getByText("QwenPaw 1.x, 2.x")).toBeInTheDocument();
+  });
+
+  it("changes the plugin market sort order", () => {
+    render(<MarketPluginList onInstalled={vi.fn()} />);
+
+    fireEvent.mouseDown(
+      screen.getByRole("combobox", {
+        name: "pluginManager.marketSortLabel",
+      }),
+    );
+    fireEvent.click(screen.getByText("pluginManager.marketSortUpdated"));
+
+    expect(hoisted.handleSortChange.mock.calls[0]?.[0]).toBe("updated_time");
   });
 });

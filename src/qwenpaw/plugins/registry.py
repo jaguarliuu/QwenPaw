@@ -102,6 +102,8 @@ class ChannelRegistration:
     label: str = ""
     description: str = ""
     config_fields: List[Dict[str, Any]] = field(default_factory=list)
+    icon: str = ""
+    doc_url: Any = ""
 
 
 @dataclass
@@ -752,6 +754,8 @@ class PluginRegistry:  # pylint:disable=too-many-public-methods
         label: str = "",
         description: str = "",
         config_fields: Optional[List[Dict[str, Any]]] = None,
+        icon: str = "",
+        doc_url: Any = "",
     ) -> None:
         """Register a custom channel from a plugin.
 
@@ -765,6 +769,13 @@ class PluginRegistry:  # pylint:disable=too-many-public-methods
                 the frontend form. Each dict should have at least
                 ``name``, ``label``, ``type`` keys. Supported types:
                 text, password, number, switch, select.
+            icon: Optional display icon URL for the channel card. The
+                frontend falls back to the default icon when it is empty
+                or not a usable http(s) URL.
+            doc_url: Optional documentation link for the channel. May be a
+                plain http(s) URL string, or a localized mapping such as
+                ``{"zh": "...", "en": "..."}``. The Console renders a "Doc"
+                button only when it resolves to a usable http(s) URL.
 
         Raises:
             ValueError: If channel_key is already registered or invalid.
@@ -834,6 +845,8 @@ class PluginRegistry:  # pylint:disable=too-many-public-methods
             label=label or normalized_key,
             description=description,
             config_fields=config_fields or [],
+            icon=(icon or "").strip(),
+            doc_url=doc_url or "",
         )
         logger.info(
             f"Registered channel '{normalized_key}' from plugin "
@@ -930,6 +943,17 @@ class PluginRegistry:  # pylint:disable=too-many-public-methods
         """
         self._unregister_plugin_http_routes(plugin_id)
         self._unregister_plugin_channels(plugin_id)
+
+        try:
+            from .api import release_tool_ownership_for_plugin
+
+            release_tool_ownership_for_plugin(plugin_id)
+        except Exception:  # noqa: BLE001
+            logger.debug(
+                "Tool ownership release skipped for plugin %s",
+                plugin_id,
+                exc_info=True,
+            )
 
         self._plugin_manifests.pop(plugin_id, None)
 
