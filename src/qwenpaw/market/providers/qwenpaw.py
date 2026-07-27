@@ -17,7 +17,26 @@ from ..schema import MarketResult
 from .base import MARKET_SEARCH_TIMEOUT_S
 
 
-_BASE_URL = "https://platform.agentscope.io"
+_MARKET_SKILLS_UPSTREAM_URL = "https://platform.agentscope.io"
+_MARKET_SKILLS_BASE_URL_ENV = "QWENPAW_MARKET_SKILLS_BASE_URL"
+
+
+def _resolve_market_skills_base_url() -> str:
+    """Three-state env resolution (unset/empty → upstream; value → override).
+
+    Kept separate from the plugin-market base URL because the skills
+    plaza and plugin market may migrate to the internal network on
+    different timelines.
+    """
+    import os
+
+    raw = os.environ.get(_MARKET_SKILLS_BASE_URL_ENV)
+    if raw is None or raw == "":
+        return _MARKET_SKILLS_UPSTREAM_URL
+    return raw.rstrip("/")
+
+
+_BASE_URL = _resolve_market_skills_base_url()
 _SEARCH_PATH = "/openapi/v1/skills"
 # Upstream hard limit: page_size must be 1..100 (400 otherwise).
 _MAX_PAGE_SIZE = 100

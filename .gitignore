@@ -152,3 +152,7 @@ e2e/__pycache__/
 graphify-out/
 local-docs/
 docs-site/
+
+# Intranet plugin-market mirror output (produced by scripts/mirror_plugin_market.py,
+# hundreds of MB of upstream ZIPs + manifest — MUST NOT be committed)
+mirror/

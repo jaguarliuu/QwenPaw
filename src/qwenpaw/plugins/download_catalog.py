@@ -15,10 +15,32 @@ from packaging.version import InvalidVersion, Version
 
 from .._version_compat import check_plugin_version_compat
 from ..plugins.architecture import PluginManifest
+from ..utils.http import build_internal_ssl_context
 
 logger = logging.getLogger(__name__)
 
-PLUGIN_DOWNLOAD_CDN = "https://download.qwenpaw.agentscope.io"
+# ── Plugin download CDN with three-state env semantics ────────────────
+#
+#   * env unset  → use the built-in default (upstream public CDN;
+#                  switch this to the internal mirror once the
+#                  ``download.qwenpaw.agentscope.io`` mirror lands)
+#   * env == ""  → same as unset (upstream default)
+#   * env == <x> → override with the given absolute URL
+#
+_PLUGIN_DOWNLOAD_CDN_UPSTREAM = "https://download.qwenpaw.agentscope.io"
+_PLUGIN_DOWNLOAD_CDN_ENV = "QWENPAW_PLUGIN_DOWNLOAD_CDN"
+
+
+def _resolve_plugin_download_cdn() -> str:
+    import os
+
+    raw = os.environ.get(_PLUGIN_DOWNLOAD_CDN_ENV)
+    if raw is None or raw == "":
+        return _PLUGIN_DOWNLOAD_CDN_UPSTREAM
+    return raw.rstrip("/")
+
+
+PLUGIN_DOWNLOAD_CDN = _resolve_plugin_download_cdn()
 _FETCH_TIMEOUT = 30
 
 
@@ -30,7 +52,11 @@ def _fetch_json(url: str) -> Any:
             "Accept-Encoding": "gzip",
         },
     )
-    with urllib.request.urlopen(req, timeout=_FETCH_TIMEOUT) as resp:
+    with urllib.request.urlopen(
+        req,
+        timeout=_FETCH_TIMEOUT,
+        context=build_internal_ssl_context(),
+    ) as resp:
         data = resp.read()
         if (
             resp.headers.get("Content-Encoding") == "gzip"

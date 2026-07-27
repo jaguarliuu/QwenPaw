@@ -20,6 +20,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from ..utils import schedule_agent_reload
+from ...utils.http import build_httpx_verify, build_internal_ssl_context
 
 logger = logging.getLogger(__name__)
 
@@ -963,9 +964,92 @@ async def serve_plugin_ui_file(
 
 
 # ── Plugin market proxy ───────────────────────────────────────────────────
+#
+# Three-state semantics for both base URL constants below:
+#
+#   * env unset  → use the built-in default (which now points to the
+#                  internal-network mirror)
+#   * env == ""  → explicit empty string falls back to the upstream
+#                  public URL, useful for local dev machines that can
+#                  reach the internet directly
+#   * env == <x> → override with the given absolute URL
+#
+# Runtime resolution is done once at import time; callers see a plain
+# ``str`` and never need to know about the env at all.
 
-_PLUGIN_MARKET_BASE_URL = "https://platform.agentscope.io"
+_PLUGIN_MARKET_UPSTREAM_URL = "https://platform.agentscope.io"
+_PLUGIN_MARKET_INTERNAL_DEFAULT = "https://25.75.3.1/c-plugin"
+_PLUGIN_MARKET_BASE_URL_ENV = "QWENPAW_PLUGIN_MARKET_BASE_URL"
+
+# Downloadable plugin ZIP path template on the internal mirror.
+# External:  https://platform.agentscope.io/plugins/{owner}/{name}/archive/zip/master
+# Internal:  {base}/plugins/{owner}/{name}/master.zip
+_PLUGIN_ZIP_UPSTREAM_HOST = "platform.agentscope.io"
+_PLUGIN_ZIP_UPSTREAM_SUFFIX = "/archive/zip/master"
+_PLUGIN_ZIP_INTERNAL_SUFFIX = "/master.zip"
+
+
+def _resolve_plugin_market_base_url() -> str:
+    """Resolve plugin market base URL with three-state env semantics."""
+    import os
+
+    raw = os.environ.get(_PLUGIN_MARKET_BASE_URL_ENV)
+    if raw is None:
+        return _PLUGIN_MARKET_INTERNAL_DEFAULT
+    if raw == "":
+        return _PLUGIN_MARKET_UPSTREAM_URL
+    return raw.rstrip("/")
+
+
+_PLUGIN_MARKET_BASE_URL = _resolve_plugin_market_base_url()
 _PLUGIN_MARKET_TIMEOUT = 15
+
+
+def _rewrite_plugin_zip_url(url: str) -> str:
+    """Rewrite an upstream plugin-archive URL to the internal mirror.
+
+    Only URLs matching the upstream host **and** the archive suffix are
+    rewritten; all other URLs (including already-rewritten internal
+    ones, third-party GitHub links, ``file://`` etc.) are returned
+    unchanged.
+
+    Example::
+
+        https://platform.agentscope.io/plugins/foo/bar/archive/zip/master
+                                    ↓
+        {internal_base}/plugins/foo/bar/master.zip
+
+    The transformation is intentionally *pure and total*: given the
+    same input and same env, always returns the same output. This
+    makes it trivial to unit-test and to reason about in incident
+    response.
+    """
+    if not isinstance(url, str) or not url:
+        return url
+
+    try:
+        from urllib.parse import urlsplit
+    except Exception:
+        return url
+
+    parts = urlsplit(url)
+    if parts.hostname != _PLUGIN_ZIP_UPSTREAM_HOST:
+        return url
+    if not parts.path.endswith(_PLUGIN_ZIP_UPSTREAM_SUFFIX):
+        return url
+
+    base = _PLUGIN_MARKET_BASE_URL.rstrip("/")
+    # If the resolved base still equals the upstream (i.e. user set
+    # env to "" to explicitly opt back into public net), keep the URL
+    # in its original archive form — the upstream server understands
+    # /archive/zip/master, not /master.zip.
+    if base.rstrip("/") == _PLUGIN_MARKET_UPSTREAM_URL.rstrip("/"):
+        return url
+
+    stripped = parts.path[: -len(_PLUGIN_ZIP_UPSTREAM_SUFFIX)]
+    # stripped now looks like "/plugins/{owner}/{name}"
+    new_path = f"{stripped}{_PLUGIN_ZIP_INTERNAL_SUFFIX}"
+    return f"{base}{new_path}"
 
 
 @router.get(
@@ -996,6 +1080,7 @@ async def search_market_plugins(
     try:
         async with httpx.AsyncClient(
             timeout=_PLUGIN_MARKET_TIMEOUT,
+            verify=build_httpx_verify(),
         ) as client:
             resp = await client.get(
                 f"{_PLUGIN_MARKET_BASE_URL}/openapi/v1/plugins",
@@ -1025,6 +1110,12 @@ async def _async_download(url: str, dest: Path) -> None:
     Streams the response in chunks with a per-operation socket timeout
     so a stalled server cannot hang the request indefinitely.
 
+    The URL is first passed through :func:`_rewrite_plugin_zip_url`,
+    which transparently redirects upstream ``platform.agentscope.io``
+    plugin archive links to the internal mirror when one is configured.
+    Callers (typically :func:`install_plugin`) therefore never need to
+    know whether they are in an air-gapped environment.
+
     Args:
         url: HTTP(S) URL to download
         dest: Destination file path
@@ -1032,11 +1123,19 @@ async def _async_download(url: str, dest: Path) -> None:
     Raises:
         RuntimeError: If the download exceeds the size cap or times out.
     """
+    effective_url = _rewrite_plugin_zip_url(url)
+    if effective_url != url:
+        logger.info(
+            "Plugin download rewritten: %s -> %s",
+            url,
+            effective_url,
+        )
 
     def _download() -> None:
         with urllib.request.urlopen(
-            url,
+            effective_url,
             timeout=_DOWNLOAD_TIMEOUT,
+            context=build_internal_ssl_context(),
         ) as resp:
             total = 0
             with open(dest, "wb") as fh:

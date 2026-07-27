@@ -475,6 +475,15 @@ def _download_plugin_from_url(url: str) -> tuple[Path, Path]:
     """
     click.echo(f"📥 Downloading plugin from {url}")
 
+    # NOTE(internal-network TLS): urllib.request.urlretrieve does NOT
+    # accept a `context=` keyword — it always uses the default TLS
+    # trust store. When installing plugins from a private mirror with
+    # a self-signed cert (e.g. https://25.75.3.1/c-plugin/...), the
+    # administrator must add the internal CA to the OS trust store
+    # (macOS: `security add-trusted-cert`; Debian: `update-ca-certs`).
+    # The env var QWENPAW_INTERNAL_CA_BUNDLE has no effect on this
+    # CLI path — it only applies to the backend server-side paths
+    # (see qwenpaw.utils.http.build_internal_ssl_context).
     # Download to temporary file
     with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp_file:
         urllib.request.urlretrieve(url, tmp_file.name)

@@ -19,6 +19,9 @@ TELEMETRY_ENDPOINT = (
 )
 TELEMETRY_MARKER_FILE = ".telemetry_collected"
 
+TELEMETRY_OPT_OUT_ENV = "QWENPAW_TELEMETRY_OPTED_OUT"
+TELEMETRY_DEFAULT_OPTED_OUT = True
+
 
 def _safe_get(func: Callable[[], str], default: str = "unknown") -> str:
     """Safely get value from function, return default on error."""
@@ -166,7 +169,12 @@ def _upload_telemetry_sync(data: dict[str, Any]) -> bool:
     try:
         import httpx
 
-        with httpx.Client(timeout=2.0) as client:
+        from .http import build_httpx_verify
+
+        with httpx.Client(
+            timeout=2.0,
+            verify=build_httpx_verify(),
+        ) as client:
             response = client.post(TELEMETRY_ENDPOINT, json=data)
             return response.status_code in (200, 201, 204)
     except Exception as e:
@@ -214,9 +222,22 @@ def has_telemetry_been_collected(working_dir: Path) -> bool:
 
 
 def is_telemetry_opted_out(working_dir: Path) -> bool:
-    """Check if the user has explicitly opted out of telemetry.
+    """Check if telemetry uploads should be skipped.
 
-    Once opted out, telemetry is never collected again regardless of version.
+    Resolution order (highest priority first):
+
+    1. Environment variable ``QWENPAW_TELEMETRY_OPTED_OUT`` — if set to a
+       truthy value (``1`` / ``true`` / ``yes``) opt-out is forced on;
+       set to a falsy value (``0`` / ``false`` / ``no``) to force
+       opt-in for that process. This makes internal-network
+       deployments trivially auditable via env config.
+    2. Per-working-directory marker file (``.telemetry_collected``) with
+       an ``opted_out: true`` entry — set once via
+       :func:`mark_telemetry_collected` when the user answers "no" at
+       first-run prompt.
+    3. Default: ``TELEMETRY_DEFAULT_OPTED_OUT`` (currently ``True``).
+       QwenPaw ships opt-out-by-default so that fresh installs never
+       phone home without an explicit opt-in.
 
     Args:
         working_dir: Path to QwenPaw working directory
@@ -224,14 +245,29 @@ def is_telemetry_opted_out(working_dir: Path) -> bool:
     Returns:
         True if user has opted out, False otherwise
     """
+    try:
+        from ..constant import EnvVarLoader, _get_env  # local: avoid cycles
+
+        raw_env = _get_env(TELEMETRY_OPT_OUT_ENV, "")
+        if raw_env != "":
+            return EnvVarLoader.get_bool(
+                TELEMETRY_OPT_OUT_ENV,
+                default=TELEMETRY_DEFAULT_OPTED_OUT,
+            )
+    except Exception:
+        # If constant module can't be imported for any reason, fall
+        # through to marker-file / default logic below — never crash
+        # the caller because of telemetry gating.
+        pass
+
     marker_file = working_dir / TELEMETRY_MARKER_FILE
     if not marker_file.exists():
-        return False
+        return TELEMETRY_DEFAULT_OPTED_OUT
     try:
         marker_data = json.loads(marker_file.read_text(encoding="utf-8"))
-        return marker_data.get("opted_out", False) is True
+        return marker_data.get("opted_out", TELEMETRY_DEFAULT_OPTED_OUT) is True
     except Exception:
-        return False
+        return TELEMETRY_DEFAULT_OPTED_OUT
 
 
 def mark_telemetry_collected(
@@ -286,12 +322,25 @@ def mark_telemetry_collected(
 def collect_and_upload_telemetry(working_dir: Path) -> bool:
     """Collect system info and upload telemetry.
 
+    This function is a defensive double-guard: even if a caller forgot
+    to gate on :func:`is_telemetry_opted_out` first, we still re-check
+    opt-out here so that no HTTP request ever escapes the process when
+    the user (or environment policy) has said "no".
+
     Args:
         working_dir: Path to QwenPaw working directory
 
     Returns:
-        True if upload succeeded, False otherwise
+        True if upload succeeded, False otherwise (including opted-out).
     """
+    # Defensive re-check: never phone home when opted out, even if a
+    # caller forgot to gate this call.
+    if is_telemetry_opted_out(working_dir):
+        logger.debug(
+            "Telemetry upload skipped: opted out (env or marker file).",
+        )
+        return False
+
     # Collect system info
     info = get_system_info()
 
