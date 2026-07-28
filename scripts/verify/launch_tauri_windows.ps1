@@ -4,7 +4,11 @@ $ErrorActionPreference = "Stop"
 
 # 1. Run NSIS silent install (matches real user installer).
 #    /S = silent, run the installer to completion before continuing.
-$installer = Get-ChildItem dist/TinyC-Tauri-*-Windows-setup.exe |
+#    NOTE: the installer basename here must match the --output pattern used
+#    in the CI stage step (see .github/workflows/desktop-build.yml, where
+#    dist/QwenPaw-Tauri-<ver>-Windows-setup.exe is produced by
+#    generate_update_manifest.py stage).
+$installer = Get-ChildItem dist/QwenPaw-Tauri-*-Windows-setup.exe |
   Select-Object -First 1
 if (-not $installer) { throw "NSIS installer not found in dist/" }
 Write-Host "Installing $($installer.Name) silently..."
